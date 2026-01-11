@@ -1,0 +1,26 @@
+{% if concepts|length == 0 %}
+  <div class="text-sm text-slate-400">No concepts match your filters yet.</div>
+{% else %}
+  <div class="overflow-hidden rounded border border-slate-800">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-950">
+        <tr class="text-left text-slate-300">
+          <th class="px-3 py-2">Title</th>
+          <th class="px-3 py-2">Status</th>
+          <th class="px-3 py-2">Importance</th>
+          <th class="px-3 py-2">Tags</th>
+          <th class="px-3 py-2">Incomplete</th>
+          <th class="px-3 py-2"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800 bg-slate-900/30">
+        {% for c in concepts %}
+          {% set tags = tags_by_id.get(c.id, []) %}
+          {% include "partials/concept_row.html" %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+

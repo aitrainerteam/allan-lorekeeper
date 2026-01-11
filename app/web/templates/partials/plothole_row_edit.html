@@ -1,0 +1,72 @@
+<tr id="plothole-row-{{ h.id }}" class="bg-slate-950/40 align-top">
+  <td colspan="8" class="px-3 py-3">
+    <form
+      class="grid grid-cols-1 gap-3 sm:grid-cols-2"
+      hx-post="/problems/holes/{{ h.id }}"
+      hx-target="#plothole-row-{{ h.id }}"
+      hx-swap="outerHTML"
+    >
+      <label class="block">
+        <div class="text-xs text-slate-400">Type</div>
+        <select name="kind" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+          {% for key, label in problem_kinds %}
+            <option value="{{ key }}" {% if (h.kind or "plot_hole") == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="block sm:col-span-2">
+        <div class="text-xs text-slate-400">Title</div>
+        <input name="title" required value="{{ h.title }}" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      </label>
+      <label class="block sm:col-span-2">
+        <div class="text-xs text-slate-400">Description</div>
+        <textarea name="description" rows="3" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">{{ h.description }}</textarea>
+      </label>
+
+      <label class="block">
+        <div class="text-xs text-slate-400">Tags (comma-separated)</div>
+        <input name="tags" value="{{ tags_csv }}" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      </label>
+
+      <div class="grid grid-cols-2 gap-3">
+        <label class="block">
+          <div class="text-xs text-slate-400">Status</div>
+          <select name="status" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+            <option value="open" {% if h.status == "open" %}selected{% endif %}>open</option>
+            <option value="investigating" {% if h.status == "investigating" %}selected{% endif %}>investigating</option>
+            <option value="resolved" {% if h.status == "resolved" %}selected{% endif %}>resolved</option>
+          </select>
+        </label>
+        <label class="block">
+          <div class="text-xs text-slate-400">Importance</div>
+          <select name="importance" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+            {% for i in [1,2,3,4,5] %}
+              <option value="{{ i }}" {% if h.importance == i %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+
+      <div class="text-xs text-slate-400 sm:col-span-2">
+        Linked to: {% if h.related_entity_type and h.related_entity_id %}{{ h.related_entity_type }} #{{ h.related_entity_id }}{% else %}—{% endif %}
+      </div>
+
+      <div class="flex items-end justify-end gap-2 sm:col-span-2">
+        <button
+          class="rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900"
+          type="button"
+          hx-get="/problems/holes/{{ h.id }}/row"
+          hx-target="#plothole-row-{{ h.id }}"
+          hx-swap="outerHTML"
+        >
+          Cancel
+        </button>
+        <button class="rounded bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500" type="submit">
+          Save
+        </button>
+      </div>
+    </form>
+  </td>
+</tr>
+
+

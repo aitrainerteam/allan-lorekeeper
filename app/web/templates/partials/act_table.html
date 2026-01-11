@@ -1,0 +1,63 @@
+{% if acts|length == 0 %}
+  <div class="text-sm text-slate-400">No acts match your filters yet.</div>
+{% else %}
+  <div class="overflow-hidden rounded border border-slate-800">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-950">
+        <tr class="text-left text-slate-300">
+          <th class="px-3 py-2">Title</th>
+          <th class="px-3 py-2">Status</th>
+          <th class="px-3 py-2">Importance</th>
+          <th class="px-3 py-2">Tags</th>
+          <th class="px-3 py-2">Incomplete</th>
+          <th class="px-3 py-2"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800 bg-slate-900/30">
+        {% for a in acts %}
+          <tr>
+            <td class="px-3 py-2 font-medium">{{ a.title }}</td>
+            <td class="px-3 py-2 text-slate-300">{{ a.status }}</td>
+            <td class="px-3 py-2 text-slate-300">{{ a.importance }}</td>
+            <td class="px-3 py-2 text-slate-300">
+              {% set t = tags_by_id.get(a.id, []) %}
+              {% if t|length == 0 %}
+                <span class="text-slate-500">—</span>
+              {% else %}
+                {{ t|join(", ") }}
+              {% endif %}
+            </td>
+            <td class="px-3 py-2">
+              {% if a.is_incomplete %}
+                <span class="rounded bg-amber-500/20 px-2 py-1 text-xs text-amber-200">incomplete</span>
+              {% else %}
+                <span class="text-slate-500 text-xs">—</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-2 text-right">
+              <button
+                class="rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
+                hx-post="/codex/acts/{{ a.id }}/toggle_incomplete"
+                hx-target="#act-table"
+                hx-swap="innerHTML"
+              >
+                toggle incomplete
+              </button>
+              <button
+                class="ml-2 rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
+                hx-post="/codex/acts/{{ a.id }}/delete"
+                hx-target="#act-table"
+                hx-swap="innerHTML"
+                hx-confirm="Delete {{ a.title }}?"
+              >
+                delete
+              </button>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+

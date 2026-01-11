@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Characters</h1>
+      <p class="mt-2 text-slate-300">Create, tag, and filter your cast.</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="/codex/characters" class="rounded border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm">Characters</a>
+      <a href="/codex/concepts" class="rounded border border-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-900/40">Concepts</a>
+    </div>
+  </div>
+
+  <div class="mt-6 rounded border border-slate-800 bg-slate-900/40 p-4">
+    <div class="font-medium">New character</div>
+    <form
+      class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      hx-post="/codex/characters"
+      hx-target="#character-table"
+      hx-swap="innerHTML"
+    >
+      <label class="block">
+        <div class="text-xs text-slate-400">Name</div>
+        <input name="name" required class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
+        <div class="text-xs text-slate-400">Tags (comma-separated)</div>
+        <input name="tags" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      </label>
+      <label class="block sm:col-span-2">
+        <div class="text-xs text-slate-400">Traits</div>
+        <textarea name="traits" rows="2" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"></textarea>
+      </label>
+      <label class="block sm:col-span-2">
+        <div class="text-xs text-slate-400">Arc</div>
+        <textarea name="arc" rows="2" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"></textarea>
+      </label>
+
+      <div class="grid grid-cols-2 gap-3">
+        <label class="block">
+          <div class="text-xs text-slate-400">Status</div>
+          <select name="status" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+            <option value="draft">draft</option>
+            <option value="active">active</option>
+            <option value="done">done</option>
+          </select>
+        </label>
+        <label class="block">
+          <div class="text-xs text-slate-400">Importance</div>
+          <select name="importance" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="flex items-end">
+        <button class="rounded bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500" type="submit">
+          Add
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="mt-6 rounded border border-slate-800 bg-slate-900/40 p-4">
+    <div class="font-medium">Filter</div>
+    <form
+      class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-4"
+      hx-get="/codex/characters/list"
+      hx-target="#character-table"
+      hx-swap="innerHTML"
+      hx-trigger="change, keyup changed delay:300ms from:input"
+    >
+      <label class="block">
+        <div class="text-xs text-slate-400">Search</div>
+        <input name="q" placeholder="name / traits / arc" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
+        <div class="text-xs text-slate-400">Status</div>
+        <input name="status" placeholder="draft" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
+        <div class="text-xs text-slate-400">Importance</div>
+        <select name="importance" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+          <option value="">any</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
+      <label class="block">
+        <div class="text-xs text-slate-400">Tag</div>
+        <input name="tag" placeholder="e.g. antagonist" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      </label>
+    </form>
+
+    <div id="character-table" class="mt-4" hx-get="/codex/characters/list" hx-trigger="load" hx-swap="innerHTML"></div>
+  </div>
+{% endblock %}
+
+

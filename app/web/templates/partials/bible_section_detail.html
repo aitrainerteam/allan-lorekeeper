@@ -1,0 +1,54 @@
+<div class="border-t border-slate-800 pt-4">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <!-- Original Content -->
+    <div>
+      <h4 class="text-sm font-medium text-slate-300 mb-2">Current Content</h4>
+      <form
+        hx-post="/bible/update/{{ section.id }}"
+        hx-target="#bible-section-{{ section.id }}"
+        hx-swap="innerHTML"
+      >
+        <textarea
+          name="content"
+          class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-mono"
+          rows="20"
+          placeholder="Section content..."
+        >{{ section.content }}</textarea>
+        <button
+          type="submit"
+          class="mt-2 rounded bg-slate-700 px-3 py-1 text-sm hover:bg-slate-600"
+        >
+          Save Changes
+        </button>
+      </form>
+    </div>
+
+    <!-- AI Editor -->
+    <div>
+      <h4 class="text-sm font-medium text-slate-300 mb-2">AI Editor</h4>
+      <form
+        hx-post="/bible/edit/{{ section.id }}"
+        hx-target="#bible-section-{{ section.id }}"
+        hx-swap="innerHTML"
+      >
+        <textarea
+          name="current_content"
+          class="hidden"
+        >{{ section.content }}</textarea>
+        <textarea
+          name="instructions"
+          placeholder="Instructions for this section (e.g., 'Make the dialogue more tense', 'Add more world-building details', 'Fix plot hole regarding the magic system')..."
+          class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          rows="4"
+          required
+        ></textarea>
+        <button
+          type="submit"
+          class="mt-2 rounded bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500"
+        >
+          Generate AI Revision
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

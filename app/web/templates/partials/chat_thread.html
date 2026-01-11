@@ -1,0 +1,25 @@
+{% if messages|length == 0 %}
+  <div class="text-sm text-slate-400">No messages yet. Ask something about your story.</div>
+{% else %}
+  <div class="space-y-3">
+    {% for m in messages %}
+      {% if m.role == "user" %}
+        <div class="flex justify-end">
+          <div class="max-w-3xl rounded bg-indigo-600/20 border border-indigo-500/30 px-3 py-2 text-sm">
+            <div class="text-xs uppercase tracking-wide text-indigo-200">You</div>
+            <div class="mt-1 whitespace-pre-wrap text-slate-100">{{ linkify_mentions(m.content) }}</div>
+          </div>
+        </div>
+      {% else %}
+        <div class="flex justify-start">
+          <div class="max-w-3xl rounded bg-slate-950/60 border border-slate-800 px-3 py-2 text-sm">
+            <div class="text-xs uppercase tracking-wide text-slate-400">Oracle</div>
+            <div class="mt-1 whitespace-pre-wrap text-slate-100">{{ linkify_mentions(m.content) }}</div>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+

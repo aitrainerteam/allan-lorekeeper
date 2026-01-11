@@ -1,0 +1,57 @@
+<tr id="concept-row-{{ c.id }}" class="bg-slate-950/40">
+  <td colspan="6" class="px-3 py-3">
+    <form
+      class="grid grid-cols-1 gap-3 sm:grid-cols-2"
+      hx-post="/codex/concepts/{{ c.id }}"
+      hx-target="#concept-row-{{ c.id }}"
+      hx-swap="outerHTML"
+    >
+      <label class="block sm:col-span-2">
+        <div class="text-xs text-slate-400">Title</div>
+        <input name="title" required value="{{ c.title }}" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
+        <div class="text-xs text-slate-400">Tags (comma-separated)</div>
+        <input name="tags" value="{{ tags_csv }}" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
+        <div class="text-xs text-slate-400">Status</div>
+        <select name="status" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+          <option value="draft" {% if c.status == "draft" %}selected{% endif %}>draft</option>
+          <option value="active" {% if c.status == "active" %}selected{% endif %}>active</option>
+          <option value="done" {% if c.status == "done" %}selected{% endif %}>done</option>
+        </select>
+      </label>
+
+      <label class="block sm:col-span-2">
+        <div class="text-xs text-slate-400">Description</div>
+        <textarea name="description" rows="3" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">{{ c.description }}</textarea>
+      </label>
+
+      <label class="block">
+        <div class="text-xs text-slate-400">Importance</div>
+        <select name="importance" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+          {% for i in [1,2,3,4,5] %}
+            <option value="{{ i }}" {% if c.importance == i %}selected{% endif %}>{{ i }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="flex items-end justify-end gap-2">
+        <button
+          class="rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900"
+          type="button"
+          hx-get="/codex/concepts/{{ c.id }}/row"
+          hx-target="#concept-row-{{ c.id }}"
+          hx-swap="outerHTML"
+        >
+          Cancel
+        </button>
+        <button class="rounded bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500" type="submit">
+          Save
+        </button>
+      </div>
+    </form>
+  </td>
+</tr>
+
+

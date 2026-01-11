@@ -1,0 +1,28 @@
+{% if holes|length == 0 %}
+  <div class="text-sm text-slate-400">No problems match your filters yet.</div>
+{% else %}
+  <div class="overflow-hidden rounded border border-slate-800">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-950">
+        <tr class="text-left text-slate-300">
+          <th class="px-3 py-2">Type</th>
+          <th class="px-3 py-2">Title</th>
+          <th class="px-3 py-2">Status</th>
+          <th class="px-3 py-2">Importance</th>
+          <th class="px-3 py-2">Tags</th>
+          <th class="px-3 py-2">Linked to</th>
+          <th class="px-3 py-2">AI</th>
+          <th class="px-3 py-2"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800 bg-slate-900/30">
+        {% for h in holes %}
+          {% set tags = tags_by_id.get(h.id, []) %}
+          {% include "partials/plothole_row.html" %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+

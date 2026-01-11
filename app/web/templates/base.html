@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or "LoreKeeper" }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  </head>
+  <body class="bg-slate-950 text-slate-100">
+    <div class="min-h-screen flex">
+      <aside class="w-64 border-r border-slate-800 p-4">
+        <div class="text-xl font-semibold tracking-tight">LoreKeeper</div>
+        <div class="mt-1 text-xs text-slate-400">Local-first story workspace</div>
+
+        <nav class="mt-6 space-y-1">
+          <a href="/bible" class="block rounded px-3 py-2 hover:bg-slate-900">Bible Editor</a>
+          <a href="/codex/characters" class="block rounded px-3 py-2 hover:bg-slate-900">Codex</a>
+          <a href="/timeline" class="block rounded px-3 py-2 hover:bg-slate-900">Timeline</a>
+          <a href="/problems" class="block rounded px-3 py-2 hover:bg-slate-900">Problems</a>
+          <a href="/chat" class="block rounded px-3 py-2 hover:bg-slate-900">Story Oracle</a>
+        </nav>
+
+        <div class="mt-8 text-xs text-slate-500">
+          DB: <span class="text-slate-300">{{ db_path }}</span>
+        </div>
+      </aside>
+
+      <main class="flex-1 p-6">
+        <div class="max-w-5xl">
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+    </div>
+    <script>
+      function lkPositionTimelinePoints(root) {
+        const scope = root || document;
+        scope.querySelectorAll("[data-lk-pct]").forEach((el) => {
+          const raw = el.getAttribute("data-lk-pct");
+          const pct = Math.max(0, Math.min(100, parseInt(raw || "0", 10)));
+          el.style.left = pct + "%";
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => lkPositionTimelinePoints(document));
+      document.body.addEventListener("htmx:afterSwap", (evt) => lkPositionTimelinePoints(evt.target));
+    </script>
+
+    <div id="lk-mention-tip" class="hidden fixed z-50"></div>
+    <script>
+      const lkMentionCache = new Map();
+      let lkTip = null;
+      let lkTipAbort = null;
+
+      function lkEnsureTip() {
+        if (!lkTip) lkTip = document.getElementById("lk-mention-tip");
+        return lkTip;
+      }
+
+      function lkMoveTip(x, y) {
+        const tip = lkEnsureTip();
+        const pad = 12;
+        tip.style.left = Math.min(window.innerWidth - 320, x + pad) + "px";
+        tip.style.top = Math.min(window.innerHeight - 160, y + pad) + "px";
+      }
+
+      async function lkLoadMention(name) {
+        if (lkMentionCache.has(name)) return lkMentionCache.get(name);
+        if (lkTipAbort) lkTipAbort.abort();
+        lkTipAbort = new AbortController();
+        const resp = await fetch(`/mentions/preview?name=${encodeURIComponent(name)}`, { signal: lkTipAbort.signal });
+        const html = await resp.text();
+        lkMentionCache.set(name, html);
+        return html;
+      }
+
+      function lkShowMentionTip(el, evt) {
+        const name = el.getAttribute("data-mention");
+        if (!name) return;
+        const tip = lkEnsureTip();
+        tip.classList.remove("hidden");
+        tip.innerHTML = '<div class="rounded border border-slate-800 bg-slate-950/95 px-3 py-2 text-xs text-slate-200">Loading…</div>';
+        lkMoveTip(evt.clientX, evt.clientY);
+        lkLoadMention(name)
+          .then((html) => {
+            tip.innerHTML = html;
+          })
+          .catch(() => {
+            tip.innerHTML = '<div class="rounded border border-slate-800 bg-slate-950/95 px-3 py-2 text-xs text-slate-200">Unable to load.</div>';
+          });
+      }
+
+      function lkHideMentionTip() {
+        const tip = lkEnsureTip();
+        tip.classList.add("hidden");
+      }
+
+      document.body.addEventListener("mousemove", (evt) => {
+        const tip = lkEnsureTip();
+        if (!tip.classList.contains("hidden")) lkMoveTip(evt.clientX, evt.clientY);
+      });
+
+      document.body.addEventListener("mouseover", (evt) => {
+        const el = evt.target.closest && evt.target.closest(".lk-mention");
+        if (el) lkShowMentionTip(el, evt);
+      });
+
+      document.body.addEventListener("mouseout", (evt) => {
+        const el = evt.target.closest && evt.target.closest(".lk-mention");
+        if (el) lkHideMentionTip();
+      });
+    </script>
+  </body>
+</html>
+
+

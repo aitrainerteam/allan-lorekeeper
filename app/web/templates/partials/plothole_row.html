@@ -1,0 +1,68 @@
+<tr id="plothole-row-{{ h.id }}" class="align-top">
+  <td class="px-3 py-2 text-slate-300">
+    <span class="rounded bg-slate-800 px-2 py-1 text-xs text-slate-200">{{ h.kind or "plot_hole" }}</span>
+  </td>
+  <td class="px-3 py-2 font-medium">{{ linkify_mentions(h.title) }}</td>
+  <td class="px-3 py-2 text-slate-300">{{ h.status }}</td>
+  <td class="px-3 py-2 text-slate-300">{{ h.importance }}</td>
+  <td class="px-3 py-2 text-slate-300">
+    {% if tags|length == 0 %}
+      <span class="text-slate-500">—</span>
+    {% else %}
+      {{ tags|join(", ") }}
+    {% endif %}
+  </td>
+  <td class="px-3 py-2 text-slate-300">
+    {% if h.related_entity_type and h.related_entity_id %}
+      <span class="text-slate-200">{{ h.related_entity_type }} #{{ h.related_entity_id }}</span>
+    {% else %}
+      <span class="text-slate-500">—</span>
+    {% endif %}
+  </td>
+  <td class="px-3 py-2 text-slate-300">
+    {% if h.description or h.ai_suggestions %}
+      <details class="rounded border border-slate-800 bg-slate-950/40 p-2">
+        <summary class="cursor-pointer text-xs text-slate-300">view</summary>
+        {% if h.description %}
+          <div class="mt-2 text-[10px] uppercase tracking-wide text-slate-400">description</div>
+          <div class="mt-1 whitespace-pre-wrap text-xs text-slate-200">{{ linkify_mentions(h.description) }}</div>
+        {% endif %}
+        {% if h.ai_suggestions %}
+          <div class="mt-3 text-[10px] uppercase tracking-wide text-slate-400">ai suggestions</div>
+          <div class="mt-1 whitespace-pre-wrap text-xs text-slate-200">{{ linkify_mentions(h.ai_suggestions) }}</div>
+        {% endif %}
+      </details>
+    {% else %}
+      <span class="text-slate-500">—</span>
+    {% endif %}
+  </td>
+  <td class="px-3 py-2 text-right whitespace-nowrap">
+    <button
+      class="rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
+      hx-get="/problems/holes/{{ h.id }}/edit"
+      hx-target="#plothole-row-{{ h.id }}"
+      hx-swap="outerHTML"
+    >
+      edit
+    </button>
+    <button
+      class="ml-2 rounded bg-indigo-600 px-2 py-1 text-xs font-medium hover:bg-indigo-500"
+      hx-post="/problems/holes/{{ h.id }}/brainstorm"
+      hx-target="#plothole-table"
+      hx-swap="innerHTML"
+    >
+      brainstorm (AI)
+    </button>
+    <button
+      class="ml-2 rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
+      hx-post="/problems/holes/{{ h.id }}/delete"
+      hx-target="#plothole-table"
+      hx-swap="innerHTML"
+      hx-confirm="Delete this problem?"
+    >
+      delete
+    </button>
+  </td>
+</tr>
+
+

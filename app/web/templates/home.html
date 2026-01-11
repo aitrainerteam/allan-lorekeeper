@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1 class="text-2xl font-semibold tracking-tight">Welcome</h1>
+  <p class="mt-2 text-slate-300">
+    LoreKeeper is ready. Your local SQLite database will be created automatically on startup.
+  </p>
+
+  <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div class="rounded border border-slate-800 bg-slate-900/40 p-4">
+      <div class="font-medium">Phase 1</div>
+      <div class="mt-1 text-sm text-slate-300">Schema + DB wiring + UI shell</div>
+    </div>
+    <div class="rounded border border-slate-800 bg-slate-900/40 p-4">
+      <div class="font-medium">Next</div>
+      <div class="mt-1 text-sm text-slate-300">CRUD screens + AI tools</div>
+    </div>
+  </div>
+{% endblock %}
+
+

@@ -1,0 +1,58 @@
+<tr id="concept-row-{{ c.id }}">
+  <td class="px-3 py-2 font-medium">
+    {{ linkify_mentions(c.title) }}
+    {% if c.description %}
+      <details class="mt-1">
+        <summary class="cursor-pointer text-xs text-slate-400">details</summary>
+        <div class="mt-2 text-xs text-slate-200 whitespace-pre-wrap">
+          {{ linkify_mentions(c.description) }}
+        </div>
+      </details>
+    {% endif %}
+  </td>
+  <td class="px-3 py-2 text-slate-300">{{ c.status }}</td>
+  <td class="px-3 py-2 text-slate-300">{{ c.importance }}</td>
+  <td class="px-3 py-2 text-slate-300">
+    {% if tags|length == 0 %}
+      <span class="text-slate-500">—</span>
+    {% else %}
+      {{ tags|join(", ") }}
+    {% endif %}
+  </td>
+  <td class="px-3 py-2">
+    {% if c.is_incomplete %}
+      <span class="rounded bg-amber-500/20 px-2 py-1 text-xs text-amber-200">incomplete</span>
+    {% else %}
+      <span class="text-slate-500 text-xs">—</span>
+    {% endif %}
+  </td>
+  <td class="px-3 py-2 text-right whitespace-nowrap">
+    <button
+      class="rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
+      hx-get="/codex/concepts/{{ c.id }}/edit"
+      hx-target="#concept-row-{{ c.id }}"
+      hx-swap="outerHTML"
+    >
+      edit
+    </button>
+    <button
+      class="ml-2 rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
+      hx-post="/codex/concepts/{{ c.id }}/toggle_incomplete"
+      hx-target="#concept-table"
+      hx-swap="innerHTML"
+    >
+      toggle incomplete
+    </button>
+    <button
+      class="ml-2 rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
+      hx-post="/codex/concepts/{{ c.id }}/delete"
+      hx-target="#concept-table"
+      hx-swap="innerHTML"
+      hx-confirm="Delete {{ c.title }}?"
+    >
+      delete
+    </button>
+  </td>
+</tr>
+
+

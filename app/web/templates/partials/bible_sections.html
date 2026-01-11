@@ -1,0 +1,52 @@
+{% if sections %}
+  <div class="grid gap-4">
+    {% for section in sections %}
+      <div class="rounded border border-slate-800 bg-slate-900/40 p-4">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <h3 class="text-lg font-medium text-slate-200">{{ section.display_name }}</h3>
+            <p class="mt-1 text-sm text-slate-400">
+              {{ section.content[:200] }}...
+            </p>
+          </div>
+          <button
+            class="ml-4 rounded bg-indigo-600 px-3 py-1 text-sm font-medium hover:bg-indigo-500"
+            hx-get="/bible/section/{{ section.id }}"
+            hx-target="#bible-section-{{ section.id }}"
+            hx-swap="innerHTML"
+          >
+            Edit
+          </button>
+        </div>
+        <div id="bible-section-{{ section.id }}" class="mt-4"></div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="rounded border border-slate-800 bg-slate-900/40 p-8 text-center">
+    <h3 class="text-lg font-medium text-slate-200">No Bible Sections Yet</h3>
+    <p class="mt-2 text-slate-400">Import a document to get started with incremental editing.</p>
+
+    <div class="mt-6">
+      <form
+        hx-post="/bible/import"
+        hx-target="#bible-sections"
+        hx-swap="innerHTML"
+      >
+        <textarea
+          name="text_content"
+          placeholder="Paste your novel bible text here, or use the Import Document button above..."
+          class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          rows="10"
+          required
+        ></textarea>
+        <button
+          type="submit"
+          class="mt-2 rounded bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500"
+        >
+          Import from Text
+        </button>
+      </form>
+    </div>
+  </div>
+{% endif %}

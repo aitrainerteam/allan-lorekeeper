@@ -1,0 +1,49 @@
+<div class="rounded border border-slate-800 bg-slate-900/40 p-4">
+  <h3 class="text-lg font-medium text-slate-200 mb-4">Export Full Bible</h3>
+
+  <div class="mb-4">
+    <textarea
+      class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-mono"
+      rows="20"
+      readonly
+    >{{ full_text }}</textarea>
+  </div>
+
+  <div class="flex gap-2">
+    <button
+      class="rounded bg-slate-700 px-3 py-1 text-sm hover:bg-slate-600"
+      onclick="navigator.clipboard.writeText(document.querySelector('textarea').value)"
+    >
+      Copy to Clipboard
+    </button>
+    <button
+      class="rounded bg-indigo-600 px-3 py-1 text-sm hover:bg-indigo-500"
+      onclick="downloadBible()"
+    >
+      Download as .txt
+    </button>
+    <button
+      class="rounded bg-slate-700 px-3 py-1 text-sm hover:bg-slate-600"
+      hx-get="/bible/sections"
+      hx-target="#bible-sections"
+      hx-swap="innerHTML"
+    >
+      Back to Editor
+    </button>
+  </div>
+
+  <script>
+    function downloadBible() {
+      const content = document.querySelector('textarea').value;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bible.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</div>

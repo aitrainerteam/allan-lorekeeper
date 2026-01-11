@@ -1,0 +1,77 @@
+{% if global_notes %}
+  <div class="mb-3 rounded border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-200">
+    <div class="text-xs uppercase tracking-wide text-slate-400">AI notes</div>
+    <div class="mt-1 whitespace-pre-wrap">{{ global_notes }}</div>
+  </div>
+{% endif %}
+
+<div class="mb-4 rounded border border-slate-800 bg-slate-950/40 p-3">
+  <div class="flex items-center justify-between gap-4">
+    <div class="text-sm font-medium">Timeline scrub</div>
+    <div class="text-xs text-slate-400">
+      showing events up to: <span class="text-slate-200">{{ t_value }}</span>
+    </div>
+  </div>
+  <input
+    name="t"
+    type="range"
+    min="{{ t_min }}"
+    max="{{ t_max }}"
+    value="{{ t_value }}"
+    class="mt-2 w-full"
+    hx-get="/timeline/events/list"
+    hx-target="#event-table"
+    hx-swap="innerHTML"
+    hx-trigger="input changed delay:50ms"
+    hx-include="#timeline-filter"
+  />
+
+  <div class="mt-4">
+    <div class="relative h-10 rounded bg-slate-900/40 border border-slate-800 overflow-hidden">
+      <div class="absolute left-0 right-0 top-1/2 h-px bg-slate-700"></div>
+      {% for p in timeline %}
+        <div
+          class="absolute top-1/2 -translate-y-1/2"
+          data-lk-pct="{{ p.pct }}"
+          title="{{ p.order }} — {{ p.event.title }}"
+        >
+          <div class="h-3 w-3 -translate-x-1/2 rounded-full bg-indigo-500 ring-2 ring-indigo-500/30"></div>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="mt-1 flex justify-between text-[11px] text-slate-500">
+      <span>{{ t_min }}</span>
+      <span>{{ t_max }}</span>
+    </div>
+  </div>
+</div>
+
+{% if events|length == 0 %}
+  <div class="text-sm text-slate-400">No events match your filters yet.</div>
+{% else %}
+  <div class="overflow-hidden rounded border border-slate-800">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-950">
+        <tr class="text-left text-slate-300">
+          <th class="px-3 py-2">Order</th>
+          <th class="px-3 py-2">Act / Beat</th>
+          <th class="px-3 py-2">Title</th>
+          <th class="px-3 py-2">Status</th>
+          <th class="px-3 py-2">Importance</th>
+          <th class="px-3 py-2">Tags</th>
+          <th class="px-3 py-2">AI notes</th>
+          <th class="px-3 py-2">Incomplete</th>
+          <th class="px-3 py-2"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800 bg-slate-900/30">
+        {% for e in events %}
+          {% set tags = tags_by_id.get(e.id, []) %}
+          {% include "partials/event_row.html" %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+
