@@ -1,0 +1,28 @@
+{
+    "name": "open-fantasy-map",
+    "version": "0.1.0",
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc && vite build",
+      "preview": "vite preview"
+    },
+    "dependencies": {
+      "d3-delaunay": "^6.0.4",
+      "d3-scale-chromatic": "^3.0.0",
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0",
+      "simplex-noise": "^4.0.1",
+      "zustand": "^4.4.0",
+      "file-saver": "^2.0.5",
+      "lucide-react": "^0.263.1"
+    },
+    "devDependencies": {
+      "@types/d3-delaunay": "^6.0.1",
+      "@types/d3-scale-chromatic": "^3.0.0",
+      "@types/file-saver": "^2.0.5",
+      "@types/react": "^18.2.15",
+      "@types/react-dom": "^18.2.7",
+      "typescript": "^5.0.2",
+      "vite": "^4.4.5"
+    }
+  }

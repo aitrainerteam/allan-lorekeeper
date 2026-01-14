@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #111;
+}
+
+canvas {
+  image-rendering: pixelated; /* Optional: for crisp edges if preferred */
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+}

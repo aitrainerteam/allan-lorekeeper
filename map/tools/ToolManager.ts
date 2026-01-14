@@ -1,4 +1,4 @@
-import { WorldMap } from '@core/MapState';
+import { WorldMap } from '../core/MapState';
 
 export type ToolType = 'select' | 'height-paint' | 'biome-paint' | 'city-placer';
 
@@ -24,7 +24,7 @@ export class HeightPaintTool extends BaseTool {
   onMouseDown(map: WorldMap, e: ToolEvent) {
     this.paint(map, e);
   }
-  
+
   onMouseMove(map: WorldMap, e: ToolEvent) {
     if (e.isDragging) this.paint(map, e);
   }
@@ -32,13 +32,54 @@ export class HeightPaintTool extends BaseTool {
   onMouseUp() {}
 
   private paint(map: WorldMap, e: ToolEvent) {
-    // Find cells within radius of e.x, e.y
-    // In a real implementation, use d3-delaunay's find() or a spatial hash
     const centerCell = e.cellId;
     if (centerCell === -1) return;
-    
-    // Naive implementation for skeleton (updates single cell)
-    // PRO VERSION: Use BFS traversal from centerCell to find neighbors within radius
-    map.cells.heights[centerCell] = Math.min(1, Math.max(0, map.cells.heights[centerCell] + this.intensity));
+
+    const centerX = map.points[centerCell * 2];
+    const centerY = map.points[centerCell * 2 + 1];
+
+    // Find all cells within radius
+    const affectedCells: number[] = [];
+    for (let i = 0; i < map.cells.heights.length; i++) {
+      const cellX = map.points[i * 2];
+      const cellY = map.points[i * 2 + 1];
+      const distance = Math.sqrt((cellX - centerX) ** 2 + (cellY - centerY) ** 2);
+
+      if (distance <= this.radius) {
+        affectedCells.push(i);
+      }
+    }
+
+    // Apply height change with falloff based on distance
+    affectedCells.forEach(cellId => {
+      const cellX = map.points[cellId * 2];
+      const cellY = map.points[cellId * 2 + 1];
+      const distance = Math.sqrt((cellX - centerX) ** 2 + (cellY - centerY) ** 2);
+      const falloff = 1 - (distance / this.radius); // Linear falloff
+
+      const heightChange = this.intensity * falloff;
+      map.cells.heights[cellId] = Math.min(1, Math.max(0, map.cells.heights[cellId] + heightChange));
+    });
+  }
+}
+
+export class SelectTool extends BaseTool {
+  id: ToolType = 'select';
+
+  onMouseDown() {}
+  onMouseMove() {}
+  onMouseUp() {}
+}
+
+export class ToolManager {
+  private static tools: Map<ToolType, BaseTool> = new Map();
+
+  static {
+    this.tools.set('select', new SelectTool());
+    this.tools.set('height-paint', new HeightPaintTool());
+  }
+
+  static getTool(type: ToolType): BaseTool | undefined {
+    return this.tools.get(type);
   }
 }

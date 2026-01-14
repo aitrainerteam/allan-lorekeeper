@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="root" class="fixed inset-0 z-10"></div>
+
+<!-- Load the built React app from map/dist -->
+<script type="module" src="/map-assets/assets/index-5b94bd80.js"></script>
+
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #111;
+  }
+
+  #root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10;
+  }
+
+  canvas {
+    image-rendering: pixelated;
+    background-color: #111;
+  }
+</style>
+{% endblock %}

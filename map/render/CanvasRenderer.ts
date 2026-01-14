@@ -1,4 +1,4 @@
-import { WorldMap } from '@core/MapState';
+import { WorldMap } from '../core/MapState';
 import { interpolateSpectral } from 'd3-scale-chromatic';
 
 export class CanvasRenderer {
