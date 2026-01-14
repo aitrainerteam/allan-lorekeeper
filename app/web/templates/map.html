@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div id="root" class="fixed inset-0 z-10"></div>
+<div id="root"></div>
 
 <!-- Load the built React app from map/dist -->
-<script type="module" src="/map-assets/assets/index-5b94bd80.js"></script>
+<link rel="stylesheet" href="/map-assets/assets/index-27a5a712.css">
+<script type="module" src="/map-assets/assets/index-88262b7d.js"></script>
 
 <style>
   body {
@@ -16,9 +17,9 @@
   #root {
     position: fixed;
     top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    bottom: 0;
+    right: 0;
+    left: 16rem;
     z-index: 10;
   }
 

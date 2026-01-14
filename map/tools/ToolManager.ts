@@ -1,4 +1,5 @@
 import { WorldMap } from '../core/MapState';
+import { useUIStore } from '../app/store';
 
 export type ToolType = 'select' | 'height-paint' | 'biome-paint' | 'city-placer';
 
@@ -18,8 +19,7 @@ export abstract class BaseTool {
 
 export class HeightPaintTool extends BaseTool {
   id: ToolType = 'height-paint';
-  radius: number = 50;
-  intensity: number = 0.1;
+  // radius and intensity are now fetched from store
 
   onMouseDown(map: WorldMap, e: ToolEvent) {
     this.paint(map, e);
@@ -29,9 +29,13 @@ export class HeightPaintTool extends BaseTool {
     if (e.isDragging) this.paint(map, e);
   }
 
-  onMouseUp() {}
+  onMouseUp() { }
 
   private paint(map: WorldMap, e: ToolEvent) {
+    const { brushSize, brushIntensity } = useUIStore.getState();
+    const radius = brushSize;
+    const intensity = brushIntensity;
+
     const centerCell = e.cellId;
     if (centerCell === -1) return;
 
@@ -45,7 +49,7 @@ export class HeightPaintTool extends BaseTool {
       const cellY = map.points[i * 2 + 1];
       const distance = Math.sqrt((cellX - centerX) ** 2 + (cellY - centerY) ** 2);
 
-      if (distance <= this.radius) {
+      if (distance <= radius) {
         affectedCells.push(i);
       }
     }
@@ -55,9 +59,9 @@ export class HeightPaintTool extends BaseTool {
       const cellX = map.points[cellId * 2];
       const cellY = map.points[cellId * 2 + 1];
       const distance = Math.sqrt((cellX - centerX) ** 2 + (cellY - centerY) ** 2);
-      const falloff = 1 - (distance / this.radius); // Linear falloff
+      const falloff = 1 - (distance / radius); // Linear falloff
 
-      const heightChange = this.intensity * falloff;
+      const heightChange = intensity * falloff;
       map.cells.heights[cellId] = Math.min(1, Math.max(0, map.cells.heights[cellId] + heightChange));
     });
   }
@@ -66,9 +70,9 @@ export class HeightPaintTool extends BaseTool {
 export class SelectTool extends BaseTool {
   id: ToolType = 'select';
 
-  onMouseDown() {}
-  onMouseMove() {}
-  onMouseUp() {}
+  onMouseDown() { }
+  onMouseMove() { }
+  onMouseUp() { }
 }
 
 export class ToolManager {

@@ -4,7 +4,7 @@ import Sidebar from './UI/Sidebar';
 
 const App = () => {
   return (
-    <div className="relative h-screen w-screen text-gray-100 font-sans">
+    <div className="flex h-full w-full text-gray-100 font-sans overflow-hidden">
       <MapCanvas />
       <Sidebar />
     </div>

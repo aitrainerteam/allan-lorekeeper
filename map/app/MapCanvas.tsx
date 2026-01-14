@@ -7,30 +7,42 @@ import { useUIStore } from './store';
 
 const MapCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<WorldMap | null>(null);
   const [renderer, setRenderer] = useState<CanvasRenderer | null>(null);
-  const [camera, setCamera] = useState({ k: 1, x: 0, y: 0 });
+  const { activeLayer, activeTool, mapVersion, mapSeed, pointCount, camera, setCamera } = useUIStore();
   const [isDragging, setIsDragging] = useState(false);
-
-  const { activeLayer, activeTool, mapVersion } = useUIStore();
+  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
 
   // Initialize map and renderer
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
 
-    // Set canvas size (excluding sidebar width)
-    canvas.width = window.innerWidth - 320; // 320px for sidebar
-    canvas.height = window.innerHeight;
+    const handleResize = () => {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+      if (map && renderer) {
+        renderer.render(map, camera, activeLayer);
+      }
+    };
 
-    // Generate initial map
-    const initialMap = MapGenerator.generate(canvas.width, canvas.height, 12345);
-    setMap(initialMap);
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    // Generate initial map if not already present
+    if (!map) {
+      const initialMap = MapGenerator.generate(canvas.width, canvas.height, mapSeed, pointCount);
+      setMap(initialMap);
+    }
 
     // Create renderer
     const canvasRenderer = new CanvasRenderer(canvas);
     setRenderer(canvasRenderer);
-  }, []);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [mapSeed, pointCount, map, renderer]); // Removed camera and activeLayer from dependencies to avoid infinite loops if not careful, but renderer.render needs them. Actually better to use separate effects.
 
   // Render when map or camera changes
   useEffect(() => {
@@ -58,15 +70,14 @@ const MapCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Check if click is within canvas bounds (exclude sidebar area)
-    const sidebarWidth = 320;
-    if (e.clientX > window.innerWidth - sidebarWidth) {
-      return; // Ignore clicks in sidebar area
+    setIsDragging(true);
+    setLastMousePos({ x: e.clientX, y: e.clientY });
+
+    if (activeTool === 'select') {
+      return; // Panning only
     }
 
     const worldPos = getWorldCoords(e.clientX, e.clientY);
-    setIsDragging(true);
-
     if (!map) return;
 
     const cellId = getCellId(worldPos.x, worldPos.y);
@@ -91,10 +102,12 @@ const MapCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Check if mouse is within canvas bounds (exclude sidebar area)
-    const sidebarWidth = 320;
-    if (e.clientX > window.innerWidth - sidebarWidth) {
-      return; // Ignore moves in sidebar area
+    if (activeTool === 'select') {
+      const dx = e.clientX - lastMousePos.x;
+      const dy = e.clientY - lastMousePos.y;
+      setCamera({ ...camera, x: camera.x + dx, y: camera.y + dy });
+      setLastMousePos({ x: e.clientX, y: e.clientY });
+      return;
     }
 
     const worldPos = getWorldCoords(e.clientX, e.clientY);
@@ -115,7 +128,7 @@ const MapCanvas = () => {
       tool.onMouseMove(map, toolEvent);
       setMap({ ...map }); // Trigger re-render
     }
-  }, [isDragging, getWorldCoords, getCellId, map, activeTool]);
+  }, [isDragging, lastMousePos, getWorldCoords, getCellId, map, activeTool]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -123,9 +136,9 @@ const MapCanvas = () => {
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    const zoomFactor = 0.1;
+    const zoomFactor = 0.05; // Less sensitive
     const delta = e.deltaY > 0 ? -zoomFactor : zoomFactor;
-    const newK = Math.max(0.1, Math.min(5, camera.k * (1 + delta)));
+    const newK = Math.max(0.1, Math.min(10, camera.k * (1 + delta)));
 
     // Zoom towards mouse position
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -141,10 +154,10 @@ const MapCanvas = () => {
   }, [camera]);
 
   return (
-    <div style={{ width: 'calc(100% - 320px)', height: '100%', position: 'absolute', left: 0, top: 0 }}>
+    <div ref={containerRef} className="flex-1 h-full relative min-w-0">
       <canvas
         ref={canvasRef}
-        className="cursor-crosshair"
+        className={activeTool === 'select' ? "cursor-grab active:cursor-grabbing" : "cursor-crosshair"}
         style={{ width: '100%', height: '100%', display: 'block' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
