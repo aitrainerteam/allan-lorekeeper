@@ -58,7 +58,9 @@ A local-first web application for fiction writers to organize and manage their c
    ```bash
    cd map
    npm install
-   npm run build
+   npm run build  # For production builds
+   # OR for development with hot reload:
+   npm run dev    # Runs on http://localhost:5173 with file watching enabled
    cd ..
    ```
 
@@ -108,6 +110,22 @@ The backend uses FastAPI with SQLModel for type-safe database operations. Key mo
 ### Frontend Development
 
 The main interface uses server-side rendered HTML with HTMX for dynamic interactions. The map component is a separate React application.
+
+**Map Component Development:**
+```bash
+cd map
+npm run dev  # Starts Vite dev server with hot module replacement
+# Server runs on http://localhost:5173
+# Changes to files are automatically detected and the browser refreshes
+```
+
+The Vite dev server watches for changes in:
+- TypeScript/TSX files
+- CSS files
+- HTML files
+- All source files in the `map/` directory
+
+Changes are automatically reflected in the browser without manual refresh.
 
 ### Database
 

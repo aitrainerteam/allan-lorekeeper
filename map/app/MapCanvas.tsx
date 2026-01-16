@@ -14,8 +14,8 @@ const MapCanvas = () => {
   const { map, setMap, activeLayer, activeTool, mapVersion, mapSeed, pointCount, camera, setCamera } = useUIStore();
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
-  const [hoverElement, setHoverElement] = useState<{ type: 'city' | 'castle' | 'marker', data: any } | null>(null);
-  const [editingElement, setEditingElement] = useState<{ type: 'city' | 'castle' | 'marker', data: any } | null>(null);
+  const [hoverElement, setHoverElement] = useState<{ type: 'city' | 'castle' | 'marker' | 'state', data: any } | null>(null);
+  const [editingElement, setEditingElement] = useState<{ type: 'city' | 'castle' | 'marker' | 'state', data: any } | null>(null);
 
   // Initialize canvas dimensions and renderer
   useEffect(() => {
@@ -151,7 +151,7 @@ const MapCanvas = () => {
 
     // Hover detection for elements (only if not dragging to save perf)
     if (map && !isDragging) {
-      let foundElement: { type: 'city' | 'castle' | 'marker', data: any } | null = null;
+      let foundElement: { type: 'city' | 'castle' | 'marker' | 'state', data: any } | null = null;
       const threshold = 10;
 
       // 1. Check Cities
@@ -190,6 +190,21 @@ const MapCanvas = () => {
           const dist = Math.sqrt((mouseX - screenX) ** 2 + (mouseY - screenY) ** 2);
           if (dist < threshold) {
             foundElement = { type: 'marker', data: marker };
+            break;
+          }
+        }
+      }
+
+      // 4. Check States (by checking if mouse is near state center)
+      if (!foundElement && activeLayer === 'political') {
+        const worldPos = getWorldCoords(e.clientX, e.clientY);
+        for (const state of map.states) {
+          if (state.cellCount < 10) continue; // Skip tiny states
+          const dist = Math.sqrt((worldPos.x - state.centerX) ** 2 + (worldPos.y - state.centerY) ** 2);
+          // Use a larger threshold for states since they're larger labels
+          const stateThreshold = 50 / camera.k; // Scale with zoom
+          if (dist < stateThreshold) {
+            foundElement = { type: 'state', data: state };
             break;
           }
         }
@@ -265,9 +280,25 @@ const MapCanvas = () => {
     if (!editingElement || !map) return;
     const { type, data } = editingElement;
 
-    if (type === 'city') map.cities = map.cities.filter(c => c.id !== data.id);
-    if (type === 'castle') map.castles = map.castles.filter(c => c.id !== data.id);
-    if (type === 'marker') map.markers = map.markers.filter(m => m.id !== data.id);
+    if (type === 'city') {
+      map.cities = map.cities.filter(c => c.id !== data.id);
+    } else if (type === 'castle') {
+      map.castles = map.castles.filter(c => c.id !== data.id);
+    } else if (type === 'marker') {
+      map.markers = map.markers.filter(m => m.id !== data.id);
+    } else if (type === 'state') {
+      // Remove state and unclaim all its cells
+      const stateId = data.id;
+      for (let i = 0; i < map.cells.states.length; i++) {
+        if (map.cells.states[i] === stateId) {
+          map.cells.states[i] = 0; // Unclaimed
+        }
+      }
+      // Remove cities that are capitals of this state
+      map.cities = map.cities.filter(city => !city.name.includes(`(Capital of ${data.name})`));
+      // Remove the state itself
+      map.states = map.states.filter(s => s.id !== stateId);
+    }
 
     setMap({ ...map });
     MapPersistence.save(map);
@@ -276,7 +307,19 @@ const MapCanvas = () => {
 
   const updateElementName = (newName: string) => {
     if (!editingElement || !map) return;
+    const oldName = editingElement.data.name;
     editingElement.data.name = newName;
+    
+    // If editing a state, update city names that reference it
+    if (editingElement.type === 'state' && oldName !== newName) {
+      map.cities = map.cities.map(city => {
+        if (city.name.includes(`(Capital of ${oldName})`)) {
+          return { ...city, name: city.name.replace(`(Capital of ${oldName})`, `(Capital of ${newName})`) };
+        }
+        return city;
+      });
+    }
+    
     setMap({ ...map });
     MapPersistence.save(map);
   };
@@ -321,14 +364,20 @@ const MapCanvas = () => {
             top: mousePos.y - 20
           }}
         >
-          <div className="text-sm font-bold text-white mb-1">{hoverElement.data.name.split(' (')[0]}</div>
+          <div className="text-sm font-bold text-white mb-1">
+            {hoverElement.type === 'state' ? hoverElement.data.name.toUpperCase() : hoverElement.data.name.split(' (')[0]}
+          </div>
           <div className="flex items-center gap-2 mb-2">
             <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-semibold 
               ${hoverElement.type === 'city' ? (hoverElement.data.type === 'Capital' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400') :
                 hoverElement.type === 'castle' ? 'bg-orange-500/20 text-orange-400' :
+                hoverElement.type === 'state' ? 'bg-purple-500/20 text-purple-400' :
                   'bg-yellow-500/20 text-yellow-400'}`}>
-              {hoverElement.type === 'city' ? hoverElement.data.type : hoverElement.type}
+              {hoverElement.type === 'city' ? hoverElement.data.type : hoverElement.type === 'state' ? 'Region' : hoverElement.type}
             </span>
+            {hoverElement.type === 'state' && (
+              <div className="text-[10px] text-gray-400">{hoverElement.data.cellCount} regions</div>
+            )}
           </div>
           <div className="text-[11px] text-gray-400 italic">
             {activeTool === 'select' ? "Click to edit" : "Switch to Pan to edit"}
@@ -359,6 +408,28 @@ const MapCanvas = () => {
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Population</label>
                   <div className="text-sm text-gray-300">{(editingElement.data.population).toLocaleString()}</div>
+                </div>
+              )}
+
+              {editingElement.type === 'state' && (
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={editingElement.data.color}
+                        onChange={(e) => {
+                          if (!map) return;
+                          editingElement.data.color = e.target.value;
+                          setMap({ ...map });
+                          MapPersistence.save(map);
+                        }}
+                        className="w-16 h-8 bg-gray-900 border border-gray-700 rounded cursor-pointer"
+                      />
+                      <div className="text-xs text-gray-400">{editingElement.data.cellCount} regions</div>
+                    </div>
+                  </div>
                 </div>
               )}
 

@@ -27,10 +27,10 @@ const Sidebar = () => {
     setMap
   } = useUIStore();
   const [activeTab, setActiveTab] = useState('layers');
-  const [editingEntity, setEditingEntity] = useState<{ type: 'city' | 'castle' | 'marker', id: number } | null>(null);
+  const [editingEntity, setEditingEntity] = useState<{ type: 'city' | 'castle' | 'marker' | 'state', id: number } | null>(null);
   const [editForm, setEditForm] = useState<any>({});
 
-  const startEditing = (type: 'city' | 'castle' | 'marker', entity: any) => {
+  const startEditing = (type: 'city' | 'castle' | 'marker' | 'state', entity: any) => {
     setEditingEntity({ type, id: entity.id });
     setEditForm({ ...entity });
   };
@@ -51,18 +51,61 @@ const Sidebar = () => {
       newMap.castles = map.castles.map(c => c.id === editingEntity.id ? { ...c, ...editForm } : c);
     } else if (editingEntity.type === 'marker') {
       newMap.markers = map.markers.map(m => m.id === editingEntity.id ? { ...m, ...editForm } : m);
+    } else if (editingEntity.type === 'state') {
+      // Update state and also update city names that reference it
+      const oldState = map.states.find(s => s.id === editingEntity.id);
+      newMap.states = map.states.map(s => s.id === editingEntity.id ? { ...s, ...editForm } : s);
+      
+      // Update city names that reference this state
+      if (oldState && editForm.name !== oldState.name) {
+        newMap.cities = map.cities.map(city => {
+          if (city.name.includes(`(Capital of ${oldState.name})`)) {
+            return { ...city, name: city.name.replace(`(Capital of ${oldState.name})`, `(Capital of ${editForm.name})`) };
+          }
+          return city;
+        });
+      }
     }
 
-    setMap(newMap); // This function comes from useUIStore but acts on the store. We need to check if 'setMap' is available in scope. It is.
-    // Note: useUIStore's setMap updates the store state. 
-    // If we want persistence, we should probably save it too, although the original code didn't seem to save on every small change, maybe explicit save?
-    // The instructions say "change in the map as well", implying immediate visual update.
-    // Let's add persistence to be safe, as user might expect it.
+    setMap(newMap);
     MapPersistence.save(newMap);
 
     setEditingEntity(null);
     setEditForm({});
     bumpMapVersion(); // Trigger re-render if needed
+  };
+
+  const deleteEntity = (type: 'city' | 'castle' | 'marker' | 'state', id: number) => {
+    if (!map) return;
+
+    const newMap = { ...map };
+
+    if (type === 'city') {
+      newMap.cities = map.cities.filter(c => c.id !== id);
+    } else if (type === 'castle') {
+      newMap.castles = map.castles.filter(c => c.id !== id);
+    } else if (type === 'marker') {
+      newMap.markers = map.markers.filter(m => m.id !== id);
+    } else if (type === 'state') {
+      // Remove state and unclaim all its cells
+      const stateId = id;
+      for (let i = 0; i < map.cells.states.length; i++) {
+        if (map.cells.states[i] === stateId) {
+          newMap.cells.states[i] = 0; // Unclaimed
+        }
+      }
+      // Remove cities that are capitals of this state
+      const state = map.states.find(s => s.id === stateId);
+      if (state) {
+        newMap.cities = map.cities.filter(city => !city.name.includes(`(Capital of ${state.name})`));
+      }
+      // Remove the state itself
+      newMap.states = map.states.filter(s => s.id !== id);
+    }
+
+    setMap(newMap);
+    MapPersistence.save(newMap);
+    bumpMapVersion();
   };
 
   console.log('Sidebar render:', { activeTool, activeLayer });
@@ -365,12 +408,22 @@ const Sidebar = () => {
                           <div className="text-sm font-medium text-gray-200">{city.name}</div>
                           <div className="text-[10px] text-gray-400">{city.type} • Pop: {city.population.toLocaleString()}</div>
                         </div>
-                        <button
-                          onClick={() => startEditing('city', city)}
-                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-600 rounded text-gray-400"
-                        >
-                          <Edit2 size={12} />
-                        </button>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                          <button
+                            onClick={() => startEditing('city', city)}
+                            className="p-1 hover:bg-gray-600 rounded text-gray-400"
+                            title="Edit"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => deleteEntity('city', city.id)}
+                            className="p-1 hover:bg-red-600/20 rounded text-red-400"
+                            title="Delete"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -420,12 +473,22 @@ const Sidebar = () => {
                           <div className="text-sm font-medium text-gray-200">{castle.name}</div>
                           <div className="text-[10px] text-gray-400">{castle.type}</div>
                         </div>
-                        <button
-                          onClick={() => startEditing('castle', castle)}
-                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-600 rounded text-gray-400"
-                        >
-                          <Edit2 size={12} />
-                        </button>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                          <button
+                            onClick={() => startEditing('castle', castle)}
+                            className="p-1 hover:bg-gray-600 rounded text-gray-400"
+                            title="Edit"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => deleteEntity('castle', castle.id)}
+                            className="p-1 hover:bg-red-600/20 rounded text-red-400"
+                            title="Delete"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -484,17 +547,100 @@ const Sidebar = () => {
                           </div>
                           <div className="text-[10px] text-gray-400 truncate">{marker.note}</div>
                         </div>
-                        <button
-                          onClick={() => startEditing('marker', marker)}
-                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-600 rounded text-gray-400"
-                        >
-                          <Edit2 size={12} />
-                        </button>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                          <button
+                            onClick={() => startEditing('marker', marker)}
+                            className="p-1 hover:bg-gray-600 rounded text-gray-400"
+                            title="Edit"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => deleteEntity('marker', marker.id)}
+                            className="p-1 hover:bg-red-600/20 rounded text-red-400"
+                            title="Delete"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
                 ))}
                 {(!map?.markers || map.markers.length === 0) && <div className="text-xs text-gray-500 italic">No markers placed yet. Use the Marker tool.</div>}
+              </div>
+            </div>
+
+            {/* States Section */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                  <MapIcon size={12} /> Regions & States
+                </h4>
+                <span className="text-xs text-gray-500">{map?.states.length || 0}</span>
+              </div>
+              <div className="space-y-2">
+                {map?.states.map(state => (
+                  <div key={state.id} className="bg-gray-700/50 rounded p-2 border border-gray-700 hover:border-gray-600 transition-colors">
+                    {editingEntity?.type === 'state' && editingEntity.id === state.id ? (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs"
+                          placeholder="State Name"
+                        />
+                        <div className="flex gap-2 items-center">
+                          <label className="text-[10px] text-gray-400">Color:</label>
+                          <input
+                            type="color"
+                            value={editForm.color}
+                            onChange={e => setEditForm({ ...editForm, color: e.target.value })}
+                            className="w-12 h-6 bg-gray-800 border border-gray-600 rounded cursor-pointer"
+                          />
+                        </div>
+                        <div className="flex justify-between items-center mt-2">
+                          <div className="text-[10px] text-gray-400">{state.cellCount} regions</div>
+                          <div className="flex gap-2">
+                            <button onClick={cancelEditing} className="p-1 hover:bg-gray-600 rounded text-gray-400"><X size={14} /></button>
+                            <button onClick={saveEntity} className="p-1 bg-blue-600 hover:bg-blue-500 rounded text-white"><Save size={14} /></button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-start group">
+                        <div className="flex-1 flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded shadow-sm shrink-0 border border-black/20"
+                            style={{ backgroundColor: state.color }}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-200">{state.name}</div>
+                            <div className="text-[10px] text-gray-400">{state.cellCount} regions</div>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                          <button
+                            onClick={() => startEditing('state', state)}
+                            className="p-1 hover:bg-gray-600 rounded text-gray-400"
+                            title="Edit"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => deleteEntity('state', state.id)}
+                            className="p-1 hover:bg-red-600/20 rounded text-red-400"
+                            title="Delete"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {(!map?.states || map.states.length === 0) && <div className="text-xs text-gray-500 italic">No states generated yet.</div>}
               </div>
             </div>
 
