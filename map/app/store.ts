@@ -34,6 +34,10 @@ interface UIState {
   pointCount: number;
   setPointCount: (count: number) => void;
 
+  // City display settings
+  showCapitalStars: boolean;
+  setShowCapitalStars: (show: boolean) => void;
+
   // Triggers for map updates
   mapVersion: number;
   bumpMapVersion: () => void;
@@ -78,6 +82,9 @@ export const useUIStore = create<UIState>((set) => ({
   setMapSeed: (seed) => set({ mapSeed: seed }),
   pointCount: 10000,
   setPointCount: (count) => set({ pointCount: count }),
+
+  showCapitalStars: false,
+  setShowCapitalStars: (show) => set({ showCapitalStars: show }),
 
   mapVersion: 0,
   bumpMapVersion: () => set((state) => ({ mapVersion: state.mapVersion + 1 })),

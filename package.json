@@ -1,0 +1,13 @@
+{
+  "name": "lorekeeper",
+  "version": "1.0.0",
+  "description": "LoreKeeper development scripts",
+  "scripts": {
+    "dev": "./scripts/run_dev.sh",
+    "dev:backend": "uvicorn app.main:app --reload --port 8000",
+    "dev:map": "cd map && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

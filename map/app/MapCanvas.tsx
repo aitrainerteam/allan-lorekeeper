@@ -11,7 +11,7 @@ const MapCanvas = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [renderer, setRenderer] = useState<CanvasRenderer | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const { map, setMap, activeLayer, activeTool, mapVersion, mapSeed, pointCount, camera, setCamera } = useUIStore();
+  const { map, setMap, activeLayer, activeTool, mapVersion, mapSeed, pointCount, camera, setCamera, showCapitalStars } = useUIStore();
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [hoverElement, setHoverElement] = useState<{ type: 'city' | 'castle' | 'marker' | 'state', data: any } | null>(null);
@@ -74,8 +74,8 @@ const MapCanvas = () => {
   // Render when map or camera changes
   useEffect(() => {
     if (!map || !renderer) return;
-    renderer.render(map, camera, activeLayer);
-  }, [map, camera, renderer, activeLayer]);
+    renderer.render(map, camera, activeLayer, showCapitalStars);
+  }, [map, camera, renderer, activeLayer, showCapitalStars]);
 
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -95,25 +95,92 @@ const MapCanvas = () => {
     return map.delaunay.find(worldX, worldY);
   }, [map]);
 
+  // Helper function to detect element at world coordinates
+  const detectElementAtPosition = useCallback((worldX: number, worldY: number): { type: 'city' | 'castle' | 'marker' | 'state', data: any } | null => {
+    if (!map) return null;
+    
+    let foundElement: { type: 'city' | 'castle' | 'marker' | 'state', data: any } | null = null;
+    // Use world coordinates for all checks - more reliable and consistent with renderer
+    // Threshold in world units, scaled appropriately
+    const baseThreshold = 30; // World units
+    const threshold = baseThreshold / camera.k; // Scale with zoom
+
+    // 1. Check Cities - use world coordinates (same as renderer)
+    for (const city of map.cities) {
+      const x = map.points[city.cellId * 2];
+      const y = map.points[city.cellId * 2 + 1];
+      const dist = Math.sqrt((worldX - x) ** 2 + (worldY - y) ** 2);
+      if (dist < threshold) {
+        foundElement = { type: 'city', data: city };
+        break;
+      }
+    }
+
+    // 2. Check Castles - use world coordinates
+    if (!foundElement) {
+      for (const castle of map.castles) {
+        const x = map.points[castle.cellId * 2];
+        const y = map.points[castle.cellId * 2 + 1];
+        const dist = Math.sqrt((worldX - x) ** 2 + (worldY - y) ** 2);
+        if (dist < threshold) {
+          foundElement = { type: 'castle', data: castle };
+          break;
+        }
+      }
+    }
+
+    // 3. Check Markers - use world coordinates for consistency
+    if (!foundElement) {
+      for (const marker of map.markers) {
+        const dist = Math.sqrt((worldX - marker.x) ** 2 + (worldY - marker.y) ** 2);
+        if (dist < threshold) {
+          foundElement = { type: 'marker', data: marker };
+          break;
+        }
+      }
+    }
+
+    // 4. Check States (by checking if mouse is near state center)
+    if (!foundElement && activeLayer === 'political') {
+      for (const state of map.states) {
+        if (state.cellCount < 10) continue; // Skip tiny states
+        const dist = Math.sqrt((worldX - state.centerX) ** 2 + (worldY - state.centerY) ** 2);
+        // Use a larger threshold for states since they're larger labels
+        const stateThreshold = 50 / camera.k; // Scale with zoom
+        if (dist < stateThreshold) {
+          foundElement = { type: 'state', data: state };
+          break;
+        }
+      }
+    }
+
+    return foundElement;
+  }, [map, camera, activeLayer]);
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    setIsDragging(true);
-    setLastMousePos({ x: e.clientX, y: e.clientY });
-
     const worldPos = getWorldCoords(e.clientX, e.clientY);
+    
     if (!map || !renderer) return;
 
     if (activeTool === 'select') {
-      // Check if clicking an element to edit
-      if (hoverElement) {
-        setEditingElement(hoverElement);
+      // Directly detect element at click position instead of relying on hoverElement
+      const clickedElement = detectElementAtPosition(worldPos.x, worldPos.y);
+      if (clickedElement) {
+        setEditingElement(clickedElement);
         setIsDragging(false); // Don't pan if we clicked an element
         return;
       }
-      return; // Panning only
+      // If no element clicked, allow panning
+      setIsDragging(true);
+      setLastMousePos({ x: e.clientX, y: e.clientY });
+      return;
     }
+
+    setIsDragging(true);
+    setLastMousePos({ x: e.clientX, y: e.clientY });
 
     const cellId = getCellId(worldPos.x, worldPos.y);
     const toolEvent = {
@@ -135,10 +202,10 @@ const MapCanvas = () => {
         MapPersistence.save(map);
       } else {
         // For continuous tools (Paint), just render canvas for performance
-        renderer.render(map, camera, activeLayer);
+        renderer.render(map, camera, activeLayer, showCapitalStars);
       }
     }
-  }, [getWorldCoords, getCellId, map, activeTool, setMap, renderer, camera, activeLayer, hoverElement]);
+  }, [getWorldCoords, getCellId, map, activeTool, setMap, renderer, camera, activeLayer, detectElementAtPosition]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const canvas = canvasRef.current;
@@ -151,65 +218,8 @@ const MapCanvas = () => {
 
     // Hover detection for elements (only if not dragging to save perf)
     if (map && !isDragging) {
-      let foundElement: { type: 'city' | 'castle' | 'marker' | 'state', data: any } | null = null;
-      const threshold = 10;
-
-      // 1. Check Cities
-      for (const city of map.cities) {
-        const x = map.points[city.cellId * 2];
-        const y = map.points[city.cellId * 2 + 1];
-        const screenX = x * camera.k + camera.x;
-        const screenY = y * camera.k + camera.y;
-        const dist = Math.sqrt((mouseX - screenX) ** 2 + (mouseY - screenY) ** 2);
-        if (dist < threshold) {
-          foundElement = { type: 'city', data: city };
-          break;
-        }
-      }
-
-      // 2. Check Castles
-      if (!foundElement) {
-        for (const castle of map.castles) {
-          const x = map.points[castle.cellId * 2];
-          const y = map.points[castle.cellId * 2 + 1];
-          const screenX = x * camera.k + camera.x;
-          const screenY = y * camera.k + camera.y;
-          const dist = Math.sqrt((mouseX - screenX) ** 2 + (mouseY - screenY) ** 2);
-          if (dist < threshold) {
-            foundElement = { type: 'castle', data: castle };
-            break;
-          }
-        }
-      }
-
-      // 3. Check Markers
-      if (!foundElement) {
-        for (const marker of map.markers) {
-          const screenX = marker.x * camera.k + camera.x;
-          const screenY = marker.y * camera.k + camera.y;
-          const dist = Math.sqrt((mouseX - screenX) ** 2 + (mouseY - screenY) ** 2);
-          if (dist < threshold) {
-            foundElement = { type: 'marker', data: marker };
-            break;
-          }
-        }
-      }
-
-      // 4. Check States (by checking if mouse is near state center)
-      if (!foundElement && activeLayer === 'political') {
-        const worldPos = getWorldCoords(e.clientX, e.clientY);
-        for (const state of map.states) {
-          if (state.cellCount < 10) continue; // Skip tiny states
-          const dist = Math.sqrt((worldPos.x - state.centerX) ** 2 + (worldPos.y - state.centerY) ** 2);
-          // Use a larger threshold for states since they're larger labels
-          const stateThreshold = 50 / camera.k; // Scale with zoom
-          if (dist < stateThreshold) {
-            foundElement = { type: 'state', data: state };
-            break;
-          }
-        }
-      }
-
+      const worldPos = getWorldCoords(e.clientX, e.clientY);
+      const foundElement = detectElementAtPosition(worldPos.x, worldPos.y);
       setHoverElement(foundElement);
     }
 
@@ -242,9 +252,9 @@ const MapCanvas = () => {
       tool.onMouseMove(map, toolEvent);
       // OPTIMIZATION: Do NOT call setMap here. It triggers Sidebar re-render.
       // Just render the canvas directly.
-      renderer.render(map, camera, activeLayer);
+      renderer.render(map, camera, activeLayer, showCapitalStars);
     }
-  }, [isDragging, lastMousePos, getWorldCoords, getCellId, map, activeTool, camera, setCamera, setMap, renderer, activeLayer]);
+  }, [isDragging, lastMousePos, getWorldCoords, getCellId, map, activeTool, camera, setCamera, setMap, renderer, activeLayer, detectElementAtPosition]);
 
   const handleMouseUp = useCallback(() => {
     // If we were painting, now is the time to sync with the store/persistence
@@ -330,8 +340,13 @@ const MapCanvas = () => {
   return (
     <div ref={containerRef} className="flex-1 h-full relative min-w-0 bg-[#0f171d]">
       <canvas
-        ref={canvasRef}
-        className={activeTool === 'select' ? "cursor-grab active:cursor-grabbing" : "cursor-none"}
+        ref={canvasRef} className={
+          activeTool === 'select' 
+            ? "cursor-grab active:cursor-grabbing" 
+            : activeTool === 'city-placer' || activeTool === 'castle-placer' || activeTool === 'marker-placer'
+            ? "cursor-crosshair"
+            : "cursor-none"
+        }
         style={{ width: '100%', height: '100%', display: 'block' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}

@@ -20,6 +20,8 @@ const Sidebar = () => {
     setMapSeed,
     pointCount,
     setPointCount,
+    showCapitalStars,
+    setShowCapitalStars,
     zoomIn,
     zoomOut,
     bumpMapVersion,
@@ -742,6 +744,22 @@ const Sidebar = () => {
                   className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
                 />
                 <span className="text-xs text-gray-500">Higher values = more detail (slower)</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-300">Capital Stars</label>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowCapitalStars(!showCapitalStars);
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showCapitalStars ? 'bg-blue-600' : 'bg-gray-600'}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showCapitalStars ? 'translate-x-6' : 'translate-x-1'}`}
+                  />
+                </button>
               </div>
               <button
                 type="button"

@@ -8,7 +8,7 @@ export class CanvasRenderer {
     this.ctx = canvas.getContext('2d', { alpha: false })!;
   }
 
-  render(map: WorldMap, cameraTransform: { k: number, x: number, y: number }, layer: 'height' | 'political') {
+  render(map: WorldMap, cameraTransform: { k: number, x: number, y: number }, layer: 'height' | 'political', showCapitalStars: boolean = false) {
     const { ctx } = this;
     const { width, height } = ctx.canvas;
 
@@ -71,7 +71,7 @@ export class CanvasRenderer {
     this.renderTerrainFeatures(map, cameraTransform);
 
     // Draw Cities
-    this.renderCities(map, cameraTransform);
+    this.renderCities(map, cameraTransform, showCapitalStars);
 
     // Draw Castles
     this.renderCastles(map, cameraTransform);
@@ -178,36 +178,74 @@ export class CanvasRenderer {
     }
   }
 
-  private renderCities(map: WorldMap, camera: { k: number }) {
+  private renderCities(map: WorldMap, camera: { k: number }, showCapitalStars: boolean = false) {
     const { ctx } = this;
 
     for (const city of map.cities) {
       const x = map.points[city.cellId * 2];
       const y = map.points[city.cellId * 2 + 1];
 
+      // Calculate size based on population (logarithmic scaling for reasonable sizes)
+      const baseSize = city.type === 'Capital' ? 4.2 :
+                      city.type === 'Town' ? 3.5 :
+                      2.1;
+      const populationScale = Math.log(city.population / 100 + 1) / Math.log(10); // Scale from 0-1 for populations 100+
+      const sizeMultiplier = 1 + populationScale * 0.5; // 0-50% larger based on population
+      const size = baseSize * sizeMultiplier;
+
       ctx.beginPath();
       if (city.type === 'Capital') {
-        // Red star or square for capital
-        ctx.fillStyle = '#ff3b3b';
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1 / camera.k;
-        ctx.rect(x - 3 / camera.k, y - 3 / camera.k, 6 / camera.k, 6 / camera.k);
+        if (showCapitalStars) {
+          // Draw star for capital
+          this.drawStar(ctx, x, y, 5 * sizeMultiplier / camera.k, 3 * sizeMultiplier / camera.k);
+          ctx.fillStyle = '#ff3b3b';
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1 / camera.k;
+        } else {
+          // Square for capital
+          ctx.fillStyle = '#ff3b3b';
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1 / camera.k;
+          ctx.rect(x - size / camera.k, y - size / camera.k, (size * 2) / camera.k, (size * 2) / camera.k);
+        }
       } else if (city.type === 'Town') {
-        // Circle for town
+        // Circle for town (scaled by population)
         ctx.fillStyle = '#fff';
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 0.5 / camera.k;
-        ctx.arc(x, y, 2.5 / camera.k, 0, Math.PI * 2);
+        ctx.arc(x, y, size / camera.k, 0, Math.PI * 2);
       } else {
-        // Small dot for village
+        // Small dot for village (scaled by population)
         ctx.fillStyle = '#ddd';
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 0.2 / camera.k;
-        ctx.arc(x, y, 1.5 / camera.k, 0, Math.PI * 2);
+        ctx.arc(x, y, size / camera.k, 0, Math.PI * 2);
       }
       ctx.fill();
       ctx.stroke();
     }
+  }
+
+  private drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, outerRadius: number, innerRadius: number) {
+    const spikes = 5;
+    const step = Math.PI / spikes;
+    const path = new Path2D();
+
+    for (let i = 0; i < 2 * spikes; i++) {
+      const angle = i * step - Math.PI / 2; // Start pointing up
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      const x = cx + Math.cos(angle) * radius;
+      const y = cy + Math.sin(angle) * radius;
+
+      if (i === 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.closePath();
+    ctx.fill(path);
+    ctx.stroke(path);
   }
 
   private renderCastles(map: WorldMap, camera: { k: number }) {

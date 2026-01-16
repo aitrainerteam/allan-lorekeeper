@@ -1,11 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% if is_development %}
+<!-- Development mode: Embed Vite dev server in iframe -->
+<iframe
+  src="{{ vite_dev_url }}"
+  style="width: 100%; height: 100%; border: none;"
+  title="World Map"
+></iframe>
+{% else %}
+<!-- Production mode: Load built assets directly -->
 <div id="root"></div>
-
-<!-- Load the built React app from map/dist -->
-<link rel="stylesheet" href="/map-assets/assets/{{ map_css }}">
-<script type="module" src="/map-assets/assets/{{ map_js }}"></script>
+<link rel="stylesheet" href="{{ map_css }}">
+<script type="module" src="{{ map_js }}"></script>
+{% endif %}
 
 <style>
   html,
