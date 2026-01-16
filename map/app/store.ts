@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { ToolType } from '../tools/ToolManager';
+import { WorldMap } from '../core/MapState';
 
 interface UIState {
   activeTool: ToolType;
@@ -8,6 +9,10 @@ interface UIState {
   setLayer: (l: 'height' | 'political') => void;
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
+
+  // Map state
+  map: WorldMap | null;
+  setMap: (map: WorldMap) => void;
 
   // Camera state
   camera: { k: number, x: number, y: number };
@@ -20,6 +25,8 @@ interface UIState {
   setBrushSize: (size: number) => void;
   brushIntensity: number;
   setBrushIntensity: (intensity: number) => void;
+  selectedBiome: number;
+  setSelectedBiome: (biome: number) => void;
 
   // Map settings
   mapSeed: number;
@@ -46,6 +53,9 @@ export const useUIStore = create<UIState>((set) => ({
   isSidebarOpen: true,
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 
+  map: null,
+  setMap: (map) => set({ map }),
+
   camera: { k: 1, x: 0, y: 0 },
   setCamera: (camera) => set({ camera }),
   zoomIn: () => set((state) => {
@@ -61,6 +71,8 @@ export const useUIStore = create<UIState>((set) => ({
   setBrushSize: (size) => set({ brushSize: size }),
   brushIntensity: 0.1,
   setBrushIntensity: (intensity) => set({ brushIntensity: intensity }),
+  selectedBiome: 2, // Default to Grassland
+  setSelectedBiome: (biome) => set({ selectedBiome: biome }),
 
   mapSeed: 12345,
   setMapSeed: (seed) => set({ mapSeed: seed }),

@@ -2,8 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+html, body, #root {
+  height: 100%;
+  width: 100%;
   margin: 0;
+  padding: 0;
+}
+
+body {
   overflow: hidden;
   background-color: #111;
 }
@@ -11,7 +17,4 @@ body {
 canvas {
   image-rendering: pixelated; /* Optional: for crisp edges if preferred */
   display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
 }

@@ -4,23 +4,52 @@
 <div id="root"></div>
 
 <!-- Load the built React app from map/dist -->
-<link rel="stylesheet" href="/map-assets/assets/index-27a5a712.css">
-<script type="module" src="/map-assets/assets/index-88262b7d.js"></script>
+<link rel="stylesheet" href="/map-assets/assets/{{ map_css }}">
+<script type="module" src="/map-assets/assets/{{ map_js }}"></script>
 
 <style>
+  html,
   body {
+    height: 100%;
     margin: 0;
     overflow: hidden;
     background-color: #111;
   }
 
+  /* Force the base layout wrapper to be full viewport height */
+  body>div.min-h-screen.flex {
+    height: 100vh;
+    min-height: 0;
+    /* Override min-h-screen */
+  }
+
+  /* Reset main container from base.html */
+  main.flex-1 {
+    padding: 0 !important;
+    /* Remove p-6 */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Reset inner div from base.html */
+  main>div {
+    max-width: none !important;
+    /* Remove max-w-5xl */
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Use relative positioning to fill the available flex space */
   #root {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    left: 16rem;
-    z-index: 10;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
   }
 
   canvas {
