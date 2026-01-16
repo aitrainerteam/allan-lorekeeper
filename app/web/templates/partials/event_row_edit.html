@@ -1,65 +1,78 @@
-<tr id="event-row-{{ e.id }}" class="bg-slate-950/40">
-  <td colspan="9" class="px-3 py-3">
+<div id="event-row-{{ e.id }}" class="timeline-card relative mb-6 ml-6">
+  <!-- Timeline dot (amber for editing state) -->
+  <div class="timeline-dot absolute -left-9 top-4 h-3 w-3 rounded-full bg-amber-500"></div>
+
+  <!-- Edit form inside card body -->
+  <div class="card-body rounded-lg border border-amber-500/50 bg-slate-950/80 p-4">
     <form
-      class="grid grid-cols-1 gap-3 sm:grid-cols-2"
+      class="space-y-4"
       hx-post="/timeline/events/{{ e.id }}"
       hx-target="#event-row-{{ e.id }}"
       hx-swap="outerHTML"
     >
-      <label class="block sm:col-span-2">
-        <div class="text-xs text-slate-400">Title</div>
-        <input name="title" required value="{{ e.title }}" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+      <!-- Title -->
+      <label class="block">
+        <div class="text-xs text-slate-400 mb-1">Title</div>
+        <input name="title" required value="{{ e.title }}" class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
       </label>
 
-      <label class="block">
-        <div class="text-xs text-slate-400">Approx order</div>
-        <input name="approx_order" type="number" value="{{ e.approx_order }}" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
-      </label>
-      <label class="block">
-        <div class="text-xs text-slate-400">Tags (comma-separated)</div>
-        <input name="tags" value="{{ tags_csv }}" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
-      </label>
-
-      <label class="block">
-        <div class="text-xs text-slate-400">Act</div>
-        <select name="act" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
-          <option value="" {% if not e.act %}selected{% endif %}>—</option>
-          {% for act_name in act_beats.keys() %}
-            <option value="{{ act_name }}" {% if e.act == act_name %}selected{% endif %}>{{ act_name }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label class="block">
-        <div class="text-xs text-slate-400">Beat</div>
-        <select name="beat" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
-          <option value="" {% if not e.beat %}selected{% endif %}>—</option>
-          {% for act_name, beats in act_beats.items() %}
-            <optgroup label="{{ act_name }}">
-              {% for b in beats %}
-                <option value="{{ b }}" {% if e.beat == b %}selected{% endif %}>{{ b }}</option>
-              {% endfor %}
-            </optgroup>
-          {% endfor %}
-        </select>
-      </label>
-
-      <label class="block sm:col-span-2">
-        <div class="text-xs text-slate-400">Description</div>
-        <textarea name="description" rows="3" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">{{ e.description }}</textarea>
-      </label>
-
-      <div class="grid grid-cols-2 gap-3">
+      <!-- Approx order and Tags -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label class="block">
-          <div class="text-xs text-slate-400">Status</div>
-          <select name="status" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+          <div class="text-xs text-slate-400 mb-1">Approx order</div>
+          <input name="approx_order" type="number" value="{{ e.approx_order }}" class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+        </label>
+        <label class="block">
+          <div class="text-xs text-slate-400 mb-1">Tags (comma-separated)</div>
+          <input name="tags" value="{{ tags_csv }}" class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+        </label>
+      </div>
+
+      <!-- Act and Beat -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label class="block">
+          <div class="text-xs text-slate-400 mb-1">Act</div>
+          <select name="act" class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+            <option value="" {% if not e.act %}selected{% endif %}>—</option>
+            {% for act_name in act_beats.keys() %}
+              <option value="{{ act_name }}" {% if e.act == act_name %}selected{% endif %}>{{ act_name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="block">
+          <div class="text-xs text-slate-400 mb-1">Beat</div>
+          <select name="beat" class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+            <option value="" {% if not e.beat %}selected{% endif %}>—</option>
+            {% for act_name, beats in act_beats.items() %}
+              <optgroup label="{{ act_name }}">
+                {% for b in beats %}
+                  <option value="{{ b }}" {% if e.beat == b %}selected{% endif %}>{{ b }}</option>
+                {% endfor %}
+              </optgroup>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+
+      <!-- Description -->
+      <label class="block">
+        <div class="text-xs text-slate-400 mb-1">Description</div>
+        <textarea name="description" rows="3" class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">{{ e.description }}</textarea>
+      </label>
+
+      <!-- Status and Importance -->
+      <div class="grid grid-cols-2 gap-4">
+        <label class="block">
+          <div class="text-xs text-slate-400 mb-1">Status</div>
+          <select name="status" class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
             <option value="draft" {% if e.status == "draft" %}selected{% endif %}>draft</option>
             <option value="active" {% if e.status == "active" %}selected{% endif %}>active</option>
             <option value="done" {% if e.status == "done" %}selected{% endif %}>done</option>
           </select>
         </label>
         <label class="block">
-          <div class="text-xs text-slate-400">Importance</div>
-          <select name="importance" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+          <div class="text-xs text-slate-400 mb-1">Importance</div>
+          <select name="importance" class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
             {% for i in [1,2,3,4,5] %}
               <option value="{{ i }}" {% if e.importance == i %}selected{% endif %}>{{ i }}</option>
             {% endfor %}
@@ -67,9 +80,10 @@
         </label>
       </div>
 
-      <div class="flex items-end justify-end gap-2 sm:col-span-2">
+      <!-- Action buttons -->
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-700">
         <button
-          class="rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900"
+          class="rounded border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-900 transition-colors"
           type="button"
           hx-get="/timeline/events/{{ e.id }}/row"
           hx-target="#event-row-{{ e.id }}"
@@ -77,12 +91,12 @@
         >
           Cancel
         </button>
-        <button class="rounded bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500" type="submit">
-          Save
+        <button class="rounded bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500 transition-colors" type="submit">
+          Save Changes
         </button>
       </div>
     </form>
-  </td>
-</tr>
+  </div>
+</div>
 
 

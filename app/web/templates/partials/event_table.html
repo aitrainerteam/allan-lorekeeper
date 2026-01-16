@@ -49,28 +49,28 @@
 {% if events|length == 0 %}
   <div class="text-sm text-slate-400">No events match your filters yet.</div>
 {% else %}
-  <div class="overflow-hidden rounded border border-slate-800">
-    <table class="w-full text-sm">
-      <thead class="bg-slate-950">
-        <tr class="text-left text-slate-300">
-          <th class="px-3 py-2">Order</th>
-          <th class="px-3 py-2">Act / Beat</th>
-          <th class="px-3 py-2">Title</th>
-          <th class="px-3 py-2">Status</th>
-          <th class="px-3 py-2">Importance</th>
-          <th class="px-3 py-2">Tags</th>
-          <th class="px-3 py-2">AI notes</th>
-          <th class="px-3 py-2">Incomplete</th>
-          <th class="px-3 py-2"></th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-800 bg-slate-900/30">
-        {% for e in events %}
-          {% set tags = tags_by_id.get(e.id, []) %}
-          {% include "partials/event_row.html" %}
-        {% endfor %}
-      </tbody>
-    </table>
+  <!-- Vertical Timeline Container -->
+  <div class="timeline-container relative pl-8">
+    <!-- Vertical line -->
+    <div class="absolute left-3 top-0 bottom-0 w-0.5 bg-slate-700"></div>
+
+    <!-- Act headers and event cards -->
+    {% set current_act = namespace(value=None) %}
+    {% for e in events %}
+      {% if e.act != current_act.value %}
+        {% set current_act.value = e.act %}
+        <!-- Act header divider -->
+        <div class="act-divider relative flex items-center py-6">
+          <div class="absolute left-3 -translate-x-1/2 h-8 w-8 rounded-full bg-slate-800 border-2 border-indigo-500 flex items-center justify-center">
+            <span class="text-xs font-bold text-indigo-300">{{ e.act.split()[-1] if e.act else "?" }}</span>
+          </div>
+          <div class="ml-12 text-lg font-semibold text-slate-200">{{ e.act or "Unassigned" }}</div>
+          <div class="ml-4 flex-1 h-px bg-slate-700"></div>
+        </div>
+      {% endif %}
+      {% set tags = tags_by_id.get(e.id, []) %}
+      {% include "partials/event_row.html" %}
+    {% endfor %}
   </div>
 {% endif %}
 

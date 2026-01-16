@@ -1,76 +1,115 @@
-<tr id="event-row-{{ e.id }}">
-  <td class="px-3 py-2 text-slate-300">
-    {% if e.ai_suggested_order %}
-      <span class="rounded bg-indigo-500/20 px-2 py-1 text-xs text-indigo-200">{{ e.ai_suggested_order }}</span>
-    {% else %}
-      <span class="text-slate-400">{{ e.approx_order }}</span>
-    {% endif %}
-  </td>
-  <td class="px-3 py-2 text-slate-300">
-    {% if e.act or e.beat %}
-      <div class="text-xs text-slate-200">{{ e.act or "—" }}</div>
-      <div class="text-xs text-slate-400">{{ e.beat or "—" }}</div>
-    {% else %}
-      <span class="text-slate-500">—</span>
-    {% endif %}
-  </td>
-  <td class="px-3 py-2 font-medium">{{ linkify_mentions(e.title) }}</td>
-  <td class="px-3 py-2 text-slate-300">{{ e.status }}</td>
-  <td class="px-3 py-2 text-slate-300">{{ e.importance }}</td>
-  <td class="px-3 py-2 text-slate-300">
-    {% if tags|length == 0 %}
-      <span class="text-slate-500">—</span>
-    {% else %}
-      {{ tags|join(", ") }}
-    {% endif %}
-  </td>
-  <td class="px-3 py-2 text-slate-300">
+<div id="event-row-{{ e.id }}"
+     class="timeline-card relative mb-6 ml-6 {% if (e.ai_suggested_order or e.approx_order) > t_value %}opacity-40 grayscale{% endif %}">
+
+  <!-- Timeline dot (importance-based sizing) -->
+  <div class="timeline-dot absolute -left-9 top-4 rounded-full bg-indigo-500
+              {% if e.importance <= 2 %}h-3 w-3
+              {% elif e.importance == 3 %}h-3.5 w-3.5
+              {% elif e.importance == 4 %}h-4 w-4 ring-2 ring-indigo-500/30
+              {% else %}h-5 w-5 ring-4 ring-indigo-500/40 shadow-lg shadow-indigo-500/30
+              {% endif %}">
+  </div>
+
+  <!-- Card content -->
+  <div class="card-body rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+
+    <!-- Metadata row: Order badge + Act/Beat tags -->
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <div class="flex items-center gap-2">
+        <!-- Order badge -->
+        {% if e.ai_suggested_order %}
+          <span class="rounded bg-indigo-500/20 px-2 py-1 text-xs font-medium text-indigo-200">{{ e.ai_suggested_order }}</span>
+        {% else %}
+          <span class="text-xs text-slate-400">{{ e.approx_order }}</span>
+        {% endif %}
+
+        <!-- Act/Beat tags -->
+        {% if e.act or e.beat %}
+          <div class="flex items-center gap-1">
+            {% if e.act %}
+              <span class="rounded bg-slate-700 px-2 py-0.5 text-xs text-slate-200">{{ e.act }}</span>
+            {% endif %}
+            {% if e.beat %}
+              <span class="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-300">{{ e.beat }}</span>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <!-- Status -->
+        <span class="text-xs text-slate-400">{{ e.status }}</span>
+
+        <!-- Importance -->
+        <span class="text-xs text-slate-400">★{{ e.importance }}</span>
+      </div>
+
+      <!-- Incomplete indicator -->
+      {% if e.is_incomplete %}
+        <span class="rounded bg-amber-500/20 px-2 py-1 text-xs text-amber-200">incomplete</span>
+      {% endif %}
+    </div>
+
+    <!-- Title -->
+    <h3 class="text-lg font-semibold text-slate-200 mb-2">{{ linkify_mentions(e.title) }}</h3>
+
+    <!-- Description (collapsible) -->
     {% if e.description %}
-      <details class="mb-2 rounded border border-slate-800 bg-slate-950/40 p-2">
-        <summary class="cursor-pointer text-xs text-slate-300">description</summary>
-        <div class="mt-2 whitespace-pre-wrap text-xs text-slate-200">{{ linkify_mentions(e.description) }}</div>
+      <details class="mb-3 rounded border border-slate-800 bg-slate-950/40">
+        <summary class="cursor-pointer px-3 py-2 text-sm text-slate-300 hover:bg-slate-900/50">Description</summary>
+        <div class="px-3 pb-2 whitespace-pre-wrap text-sm text-slate-200">{{ linkify_mentions(e.description) }}</div>
       </details>
     {% endif %}
+
+    <!-- Tags -->
+    {% if tags|length > 0 %}
+      <div class="mb-3 flex flex-wrap gap-1">
+        {% for tag in tags %}
+          <span class="rounded bg-slate-700 px-2 py-0.5 text-xs text-slate-300">{{ tag }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- AI Notes bubble -->
     {% if e.ai_notes %}
-      <div class="max-w-md whitespace-pre-wrap text-slate-200">{{ linkify_mentions(e.ai_notes) }}</div>
-    {% else %}
-      <span class="text-slate-500">—</span>
+      <div class="mt-3 rounded-lg bg-indigo-950/50 border border-indigo-500/30 p-3">
+        <div class="flex items-center gap-2 text-xs text-indigo-300 mb-1">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+          </svg>
+          AI Insight
+        </div>
+        <div class="text-sm text-slate-300 whitespace-pre-wrap">{{ linkify_mentions(e.ai_notes) }}</div>
+      </div>
     {% endif %}
-  </td>
-  <td class="px-3 py-2">
-    {% if e.is_incomplete %}
-      <span class="rounded bg-amber-500/20 px-2 py-1 text-xs text-amber-200">incomplete</span>
-    {% else %}
-      <span class="text-slate-500 text-xs">—</span>
-    {% endif %}
-  </td>
-  <td class="px-3 py-2 text-right whitespace-nowrap">
-    <button
-      class="rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
-      hx-get="/timeline/events/{{ e.id }}/edit"
-      hx-target="#event-row-{{ e.id }}"
-      hx-swap="outerHTML"
-    >
-      edit
-    </button>
-    <button
-      class="ml-2 rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
-      hx-post="/timeline/events/{{ e.id }}/toggle_incomplete"
-      hx-target="#event-table"
-      hx-swap="innerHTML"
-    >
-      toggle incomplete
-    </button>
-    <button
-      class="ml-2 rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
-      hx-post="/timeline/events/{{ e.id }}/delete"
-      hx-target="#event-table"
-      hx-swap="innerHTML"
-      hx-confirm="Delete {{ e.title }}?"
-    >
-      delete
-    </button>
-  </td>
-</tr>
+
+    <!-- Action buttons -->
+    <div class="mt-4 flex items-center justify-end gap-2">
+      <button
+        class="rounded border border-slate-700 px-3 py-1 text-sm text-slate-200 hover:bg-slate-900 transition-colors"
+        hx-get="/timeline/events/{{ e.id }}/edit"
+        hx-target="#event-row-{{ e.id }}"
+        hx-swap="outerHTML"
+      >
+        Edit
+      </button>
+      <button
+        class="rounded border border-slate-700 px-3 py-1 text-sm text-slate-200 hover:bg-slate-900 transition-colors"
+        hx-post="/timeline/events/{{ e.id }}/toggle_incomplete"
+        hx-target="#event-table"
+        hx-swap="innerHTML"
+      >
+        Toggle Incomplete
+      </button>
+      <button
+        class="rounded border border-red-700 px-3 py-1 text-sm text-red-200 hover:bg-red-900/50 transition-colors"
+        hx-post="/timeline/events/{{ e.id }}/delete"
+        hx-target="#event-table"
+        hx-swap="innerHTML"
+        hx-confirm="Delete {{ e.title }}?"
+      >
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
 
 
