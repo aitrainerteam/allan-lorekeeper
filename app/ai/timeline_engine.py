@@ -1,3 +1,11 @@
+"""
+AI-powered timeline synthesis and ordering.
+
+This module provides intelligent timeline analysis and ordering capabilities using
+OpenAI's language models. It helps authors organize story events into coherent
+narratives by analyzing pacing, continuity, and logical flow.
+"""
+
 from __future__ import annotations
 
 import json

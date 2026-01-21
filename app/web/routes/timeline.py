@@ -1,3 +1,11 @@
+"""
+Timeline management routes and API endpoints.
+
+This module provides the web interface and API for managing story timelines in
+LoreKeeper. It supports CRUD operations for events, timeline synthesis using AI,
+and interactive timeline visualization with act/beat structure support.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,6 +17,7 @@ from sqlmodel import Session, select
 
 from app.ai.timeline_engine import synthesize_and_align_timeline
 from app.core.config import get_settings
+from app.core.constants import ACT_BEATS, parse_int
 from app.core.db import get_session
 from app.crud.tags import (
     filter_entity_ids_by_tag,
@@ -19,60 +28,20 @@ from app.crud.tags import (
 from app.models.common import utcnow
 from app.models.timeline import Event
 from app.web.mentions import linkify_mentions
+from app.web.utils import base_ctx
 
 
 router = APIRouter(prefix="/timeline", tags=["timeline"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 settings = get_settings()
 
-ACT_BEATS: dict[str, list[str]] = {
-    "ACT 1": [
-        "Epilogue",
-        "Exposition/Introduction",
-        "Inciting Incident",
-        "Second Thoughts",
-        "Climax Of Act One",
-    ],
-    "ACT 2": [
-        "Obstacle (1)",
-        "Rising Action",
-        "Midpoint",
-        "Obstacle (2)",
-        "Disaster",
-        "Climax Of Act Two",
-    ],
-    "ACT 3": [
-        "Relative Peace",
-        "Obstacle",
-        "Rising Action",
-        "Disaster",
-        "Climax Of Act III",
-        "Resolution",
-        "Falling Action",
-    ],
-}
-
-def _parse_int(value: str | None) -> int | None:
-    if value is None:
-        return None
-    value = value.strip()
-    if value == "":
-        return None
-    try:
-        return int(value)
-    except ValueError:
-        return None
-
-
-def _base_ctx(request: Request) -> dict:
-    return {"request": request, "db_path": str(settings.sqlite_path)}
 
 
 @router.get("/events", response_class=HTMLResponse)
 def events_page(request: Request):
     return templates.TemplateResponse(
         "timeline_events.html",
-        {**_base_ctx(request), "title": "Timeline", "act_beats": ACT_BEATS},
+        {**base_ctx(request), "title": "Timeline", "act_beats": ACT_BEATS},
     )
 
 
@@ -95,7 +64,7 @@ def events_list(
         stmt = stmt.where(Event.beat == beat)
     if status:
         stmt = stmt.where(Event.status == status)
-    importance_i = _parse_int(importance)
+    importance_i = parse_int(importance)
     if importance_i is not None:
         stmt = stmt.where(Event.importance == importance_i)
     if q:
@@ -109,7 +78,7 @@ def events_list(
             return templates.TemplateResponse(
                 "partials/event_table.html",
                 {
-                    **_base_ctx(request),
+                    **base_ctx(request),
                     "events": events,
                     "tags_by_id": tags_by_id,
                     "global_notes": None,
@@ -124,7 +93,8 @@ def events_list(
         stmt = stmt.where(Event.id.in_(ids))
 
     events = session.exec(stmt).all()
-    # Sort: AI suggested order first if present, else approx_order, else id
+    # Sort events by priority: AI-suggested order first (if available), then approx_order, finally by ID
+    # Use tuple sorting: (has_no_ai_order, ai_order_or_max, approx_order, id)
     events.sort(key=lambda e: (e.ai_suggested_order is None, e.ai_suggested_order or 10**9, e.approx_order, e.id or 0))
 
     # Scrub range is based on effective order for currently filtered events (before applying t)
@@ -135,7 +105,7 @@ def events_list(
     else:
         t_min = 0
         t_max = 0
-    t_i = _parse_int(t)
+    t_i = parse_int(t)
     t_value = t_max if t_i is None else t_i
 
     # Scrub filter: show events up to "t" by effective order (AI if present, else approx)
@@ -144,17 +114,17 @@ def events_list(
 
     tags_by_id = {e.id: get_entity_tag_names(session, entity_type="event", entity_id=e.id) for e in events if e.id}
 
-    # timeline points positioned on a 0..100% line
+    # Position timeline points on a 0..100% scale for visualization
     effective_orders = [(e.ai_suggested_order or e.approx_order) for e in events]
     if effective_orders:
-        lo = min(effective_orders)
-        hi = max(effective_orders)
-        span = max(1, hi - lo)
+        lo = min(effective_orders)  # Minimum order value for normalization
+        hi = max(effective_orders)  # Maximum order value for normalization
+        span = max(1, hi - lo)  # Range of orders, minimum 1 to avoid division by zero
         timeline = [
             {
                 "event": e,
                 "order": (e.ai_suggested_order or e.approx_order),
-                "pct": int(round((( (e.ai_suggested_order or e.approx_order) - lo) / span) * 100)),
+                "pct": int(round((( (e.ai_suggested_order or e.approx_order) - lo) / span) * 100)),  # Normalize to 0-100%
             }
             for e in events
         ]
@@ -164,7 +134,7 @@ def events_list(
     return templates.TemplateResponse(
         "partials/event_table.html",
         {
-            **_base_ctx(request),
+            **base_ctx(request),
             "events": events,
             "tags_by_id": tags_by_id,
             "global_notes": None,
@@ -191,20 +161,38 @@ def events_create(
     tags: str = Form(""),
     session: Session = Depends(get_session),
 ):
-    e = Event(
-        title=title,
-        description=description,
-        act=act or None,
-        beat=beat or None,
-        approx_order=approx_order,
-        status=status,
-        importance=importance,
-    )
-    session.add(e)
-    session.commit()
-    session.refresh(e)
-    set_entity_tags(session, entity_type="event", entity_id=e.id, tag_names=parse_tag_names(tags))
-    return events_list(request, session=session)
+    # Validate input
+    if not title or not title.strip():
+        return HTMLResponse("Title is required", status_code=400)
+    if len(title.strip()) > 240:
+        return HTMLResponse("Title too long (max 240 characters)", status_code=400)
+    if importance < 1 or importance > 5:
+        return HTMLResponse("Importance must be between 1 and 5", status_code=400)
+    if status not in ["draft", "active", "done"]:
+        return HTMLResponse("Invalid status", status_code=400)
+    if act and act not in ACT_BEATS:
+        return HTMLResponse("Invalid act", status_code=400)
+    if beat and act and beat not in ACT_BEATS.get(act, []):
+        return HTMLResponse("Invalid beat for selected act", status_code=400)
+
+    try:
+        e = Event(
+            title=title.strip(),
+            description=description.strip(),
+            act=act or None,
+            beat=beat or None,
+            approx_order=approx_order,
+            status=status,
+            importance=importance,
+        )
+        session.add(e)
+        session.commit()
+        session.refresh(e)
+        set_entity_tags(session, entity_type="event", entity_id=e.id, tag_names=parse_tag_names(tags))
+        return events_list(request, session=session)
+    except Exception as ex:
+        session.rollback()
+        return HTMLResponse(f"Failed to create event: {type(ex).__name__}", status_code=500)
 
 
 @router.get("/events/{event_id}/row", response_class=HTMLResponse)
@@ -219,7 +207,7 @@ def events_row(
     tags = get_entity_tag_names(session, entity_type="event", entity_id=e.id) if e.id else []
     return templates.TemplateResponse(
         "partials/event_row.html",
-        {**_base_ctx(request), "e": e, "tags": tags, "linkify_mentions": linkify_mentions},
+        {**base_ctx(request), "e": e, "tags": tags, "linkify_mentions": linkify_mentions},
     )
 
 
@@ -235,7 +223,7 @@ def events_edit_row(
     tags = get_entity_tag_names(session, entity_type="event", entity_id=e.id) if e.id else []
     return templates.TemplateResponse(
         "partials/event_row_edit.html",
-        {**_base_ctx(request), "e": e, "tags_csv": ", ".join(tags), "act_beats": ACT_BEATS, "linkify_mentions": linkify_mentions},
+        {**base_ctx(request), "e": e, "tags_csv": ", ".join(tags), "act_beats": ACT_BEATS, "linkify_mentions": linkify_mentions},
     )
 
 
@@ -253,22 +241,41 @@ def events_update(
     tags: str = Form(""),
     session: Session = Depends(get_session),
 ):
+    # Validate input
+    if not title or not title.strip():
+        return HTMLResponse("Title is required", status_code=400)
+    if len(title.strip()) > 240:
+        return HTMLResponse("Title too long (max 240 characters)", status_code=400)
+    if importance < 1 or importance > 5:
+        return HTMLResponse("Importance must be between 1 and 5", status_code=400)
+    if status not in ["draft", "active", "done"]:
+        return HTMLResponse("Invalid status", status_code=400)
+    if act and act not in ACT_BEATS:
+        return HTMLResponse("Invalid act", status_code=400)
+    if beat and act and beat not in ACT_BEATS.get(act, []):
+        return HTMLResponse("Invalid beat for selected act", status_code=400)
+
     e = session.get(Event, event_id)
     if not e:
-        return HTMLResponse("Not found", status_code=404)
-    e.title = title
-    e.description = description
-    e.act = act or None
-    e.beat = beat or None
-    e.approx_order = approx_order
-    e.status = status
-    e.importance = importance
-    e.updated_at = utcnow()
-    session.add(e)
-    session.commit()
-    if e.id:
-        set_entity_tags(session, entity_type="event", entity_id=e.id, tag_names=parse_tag_names(tags))
-    return events_row(event_id=event_id, request=request, session=session)
+        return HTMLResponse("Event not found", status_code=404)
+
+    try:
+        e.title = title.strip()
+        e.description = description.strip()
+        e.act = act or None
+        e.beat = beat or None
+        e.approx_order = approx_order
+        e.status = status
+        e.importance = importance
+        e.updated_at = utcnow()
+        session.add(e)
+        session.commit()
+        if e.id:
+            set_entity_tags(session, entity_type="event", entity_id=e.id, tag_names=parse_tag_names(tags))
+        return events_row(event_id=event_id, request=request, session=session)
+    except Exception as ex:
+        session.rollback()
+        return HTMLResponse(f"Failed to update event: {type(ex).__name__}", status_code=500)
 
 
 @router.post("/events/{event_id}/toggle_incomplete", response_class=HTMLResponse)
@@ -311,7 +318,7 @@ def synthesize(
         return templates.TemplateResponse(
             "partials/event_table.html",
             {
-                **_base_ctx(request),
+                **base_ctx(request),
                 "events": [],
                 "tags_by_id": {},
                 "global_notes": "Add events first.",
@@ -343,7 +350,7 @@ def synthesize(
         return templates.TemplateResponse(
             "partials/event_table.html",
             {
-                **_base_ctx(request),
+                **base_ctx(request),
                 "events": events,
                 "tags_by_id": {e.id: get_entity_tag_names(session, entity_type="event", entity_id=e.id) for e in events if e.id},
                 "global_notes": f"AI synthesis failed: {type(ex).__name__}",
@@ -380,7 +387,7 @@ def synthesize(
     return templates.TemplateResponse(
         "partials/event_table.html",
         {
-            **_base_ctx(request),
+            **base_ctx(request),
             "events": sorted(by_id.values(), key=lambda e: (e.ai_suggested_order is None, e.ai_suggested_order or 10**9, e.approx_order, e.id or 0)),
             "tags_by_id": {e.id: get_entity_tag_names(session, entity_type="event", entity_id=e.id) for e in by_id.values() if e.id},
             "global_notes": global_notes,

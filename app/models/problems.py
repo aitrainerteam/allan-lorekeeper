@@ -1,3 +1,11 @@
+"""
+Problem and issue tracking models.
+
+This module defines data models for tracking story problems, plot holes, and
+other issues that need to be addressed. It supports categorization, prioritization,
+and linking to related story elements.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

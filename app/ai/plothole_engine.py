@@ -1,3 +1,11 @@
+"""
+AI-powered plot hole detection and solution generation.
+
+This module provides intelligent analysis of story continuity issues and generates
+practical solutions using OpenAI's language models. It helps authors identify and
+resolve plot inconsistencies, pacing problems, and logical gaps in their narratives.
+"""
+
 from __future__ import annotations
 
 import json

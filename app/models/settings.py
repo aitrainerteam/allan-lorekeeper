@@ -1,3 +1,11 @@
+"""
+Application settings and configuration models.
+
+This module defines models for storing global application settings, including
+AI assistant instructions and other configurable parameters that affect the
+behavior of LoreKeeper across the application.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

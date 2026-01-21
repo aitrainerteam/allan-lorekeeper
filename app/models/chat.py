@@ -1,3 +1,11 @@
+"""
+Chat and conversation models.
+
+This module defines data models for storing chat conversations and messages,
+enabling persistent chat history for the Oracle and other conversational features
+in LoreKeeper.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

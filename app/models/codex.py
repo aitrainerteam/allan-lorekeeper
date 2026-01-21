@@ -1,3 +1,11 @@
+"""
+Codex models for story elements.
+
+This module defines the core data models for managing story elements in LoreKeeper,
+including characters, concepts, acts, and tagging functionality. The codex serves
+as the central repository for world-building elements.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

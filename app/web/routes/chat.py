@@ -8,8 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
-from app.ai.entity_extractor import extract_entities_from_text
-from app.ai.oracle import answer_story_question, build_rag_lite_context
+from app.ai.intent_router import route_user_message
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.crud.auto_entities import persist_extracted_entities
@@ -40,54 +39,6 @@ def _get_conversation_id(request: Request) -> str:
     return uuid.uuid4().hex
 
 
-def _is_question(text: str) -> bool:
-    t = (text or "").strip()
-    if not t:
-        return False
-    if "?" in t:
-        return True
-    starters = (
-        "who",
-        "what",
-        "when",
-        "where",
-        "why",
-        "how",
-        "can ",
-        "could ",
-        "should ",
-        "does ",
-        "do ",
-        "did ",
-        "is ",
-        "are ",
-        "will ",
-        "would ",
-    )
-    return t.lower().startswith(starters)
-
-
-def _should_extract_entities(text: str) -> bool:
-    """Determine if we should extract and create entities from this message."""
-    t = (text or "").strip().lower()
-    if not t:
-        return False
-
-    # Always extract if user explicitly requests creation
-    creation_keywords = [
-        "create a", "create an", "add a", "add an", "new character", "new concept",
-        "new event", "new plot hole", "new issue", "new problem", "add character",
-        "add concept", "add event", "add plot hole", "add issue", "add problem"
-    ]
-    if any(keyword in t for keyword in creation_keywords):
-        return True
-
-    # Don't extract entities from questions (unless they contain explicit creation commands)
-    if _is_question(text):
-        return False
-
-    # Extract from statements that appear to be providing story content
-    return True
 
 
 def _mention(name: str) -> str:
@@ -303,36 +254,11 @@ def oracle_ask(
     session.add(ChatMessage(conversation_id=cid, role="user", content=text))
     session.commit()
 
-    # Check if this message should trigger entity extraction
-    should_extract_entities = _should_extract_entities(text)
+    # Use LLM-based intent routing to determine and execute actions
+    result = route_user_message(session, text, cid)
 
-    # 1) Extract + persist entities only when appropriate
-    summary_text = ""
-    if should_extract_entities:
-        try:
-            extracted = extract_entities_from_text(session, text=text)
-            summary = persist_extracted_entities(session, extracted)
-            summary_text = _format_entity_summary(summary)
-        except Exception:
-            # Keep chat robust even if extraction fails
-            summary_text = ""
-
-    # 2) Respond: if it's a question, use the Oracle; otherwise confirm creation.
-    if _is_question(text):
-        context = build_rag_lite_context(session, question=text)
-        try:
-            answer = answer_story_question(
-                session=session,
-                conversation_id=cid,
-                question=text,
-                context=context
-            )
-        except Exception as ex:
-            answer = f"(AI error: {type(ex).__name__})"
-    else:
-        answer = "Got it — I added that to your database. Ask me a question about it anytime."
-
-    final = (summary_text + "\n\n" + answer).strip() if summary_text else (answer or "").strip()
+    # Format the response
+    final = result.response_text
 
     session.add(ChatMessage(conversation_id=cid, role="assistant", content=final))
     session.commit()

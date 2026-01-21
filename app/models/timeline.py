@@ -1,3 +1,11 @@
+"""
+Timeline and event models.
+
+This module defines data models for managing story timelines, including events,
+their ordering, and structural elements like acts and beats. It supports both
+manual ordering and AI-assisted timeline synthesis.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

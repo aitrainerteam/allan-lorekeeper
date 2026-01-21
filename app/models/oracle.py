@@ -1,3 +1,11 @@
+"""
+Oracle AI assistant models.
+
+This module defines data models for managing OpenAI Assistant API resources,
+including cached assistants and conversation threads for the Oracle feature.
+It enables efficient reuse of AI assistants across conversations.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

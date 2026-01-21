@@ -1,3 +1,12 @@
+"""
+Mentions API routes for entity linking and preview.
+
+This module provides API endpoints for the @mention functionality in LoreKeeper,
+allowing users to quickly reference and preview story elements (characters, concepts,
+events, plot holes) by name. It supports fuzzy matching and provides rich previews
+for integration into text editors and other interfaces.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

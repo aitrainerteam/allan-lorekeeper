@@ -1,3 +1,21 @@
+"""
+LoreKeeper - A comprehensive fiction writing and world-building application.
+
+This is the main FastAPI application entry point for LoreKeeper, a tool designed to help
+authors manage complex fictional worlds, characters, timelines, and plot elements.
+The application provides a web interface for organizing story elements and includes
+AI-powered features for entity extraction, timeline synthesis, and creative assistance.
+
+Key features:
+- Character and concept management (Codex)
+- Timeline event tracking and synthesis
+- Plot hole detection and problem tracking
+- Interactive map generation
+- AI-powered entity extraction from text
+- Chat-based oracle for story consultation
+- Bible/setting documentation management
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,6 +43,18 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "web" / "templ
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    FastAPI lifespan context manager.
+
+    Handles application startup and shutdown events. Currently initializes
+    the database on startup. Can be extended for cleanup operations on shutdown.
+
+    Args:
+        app: The FastAPI application instance.
+
+    Yields:
+        None
+    """
     # Startup
     init_db()
     yield
@@ -49,6 +79,15 @@ app.include_router(map_router)
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
+    """
+    Render the home page.
+
+    Args:
+        request: The FastAPI request object.
+
+    Returns:
+        HTMLResponse: Rendered home page template.
+    """
     return templates.TemplateResponse(
         "home.html",
         {"request": request, "title": "LoreKeeper", "db_path": str(settings.sqlite_path)},
@@ -57,21 +96,57 @@ def home(request: Request):
 
 @app.get("/codex", response_class=HTMLResponse)
 def codex(request: Request):
+    """
+    Redirect to the codex characters page.
+
+    Args:
+        request: The FastAPI request object.
+
+    Returns:
+        RedirectResponse: Redirect to characters page.
+    """
     return RedirectResponse(url="/codex/characters", status_code=302)
 
 
 @app.get("/timeline", response_class=HTMLResponse)
 def timeline(request: Request):
+    """
+    Redirect to the timeline events page.
+
+    Args:
+        request: The FastAPI request object.
+
+    Returns:
+        RedirectResponse: Redirect to events page.
+    """
     return RedirectResponse(url="/timeline/events", status_code=302)
 
 
 @app.get("/problems", response_class=HTMLResponse)
 def problems(request: Request):
+    """
+    Redirect to the problems holes page.
+
+    Args:
+        request: The FastAPI request object.
+
+    Returns:
+        RedirectResponse: Redirect to holes page.
+    """
     return RedirectResponse(url="/problems/holes", status_code=302)
 
 
 @app.get("/chat", response_class=HTMLResponse)
 def chat(request: Request):
+    """
+    Redirect to the chat oracle page.
+
+    Args:
+        request: The FastAPI request object.
+
+    Returns:
+        RedirectResponse: Redirect to oracle page.
+    """
     return RedirectResponse(url="/chat/oracle", status_code=302)
 
 

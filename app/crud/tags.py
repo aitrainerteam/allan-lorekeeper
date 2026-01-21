@@ -1,3 +1,11 @@
+"""
+CRUD operations for tag management and entity tagging.
+
+This module provides functionality for creating, managing, and querying tags
+across different entity types in LoreKeeper. It supports polymorphic tagging
+for characters, concepts, events, and other story elements.
+"""
+
 from __future__ import annotations
 
 from sqlmodel import Session, select

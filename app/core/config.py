@@ -1,3 +1,11 @@
+"""
+Application configuration management.
+
+This module handles loading and providing application settings from environment
+variables and computed paths. It centralizes configuration management for the
+LoreKeeper application.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,7 +23,13 @@ class Settings:
 
 def get_settings() -> Settings:
     """
-    Loads environment variables from a local .env file if present.
+    Load and return application settings from environment variables.
+
+    Loads environment variables from a local .env file if present, then
+    constructs paths and retrieves API keys.
+
+    Returns:
+        Settings: Frozen dataclass containing all application configuration.
     """
     load_dotenv(override=False)
 

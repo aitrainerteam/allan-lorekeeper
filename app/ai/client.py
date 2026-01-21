@@ -1,3 +1,11 @@
+"""
+OpenAI API client utilities.
+
+This module provides a centralized interface for interacting with OpenAI's API,
+including client initialization, assistant management, thread handling, and
+run execution for the LoreKeeper AI features.
+"""
+
 from __future__ import annotations
 
 from openai import OpenAI

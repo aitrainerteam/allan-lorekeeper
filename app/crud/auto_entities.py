@@ -1,3 +1,11 @@
+"""
+Automated entity creation and merging utilities.
+
+This module provides intelligent creation and updating of story entities from
+extracted data. It handles deduplication, merging of similar entities, and
+maintains data integrity when importing entities from AI extraction or user input.
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -15,15 +23,16 @@ def _norm(s: str | None) -> str:
 
 
 def _merge_text(existing: str, incoming: str) -> str:
+    """Merge two text strings, avoiding duplicates."""
     existing = _norm(existing)
     incoming = _norm(incoming)
-    if not incoming:
+    if not incoming:  # No new content to merge
         return existing
-    if not existing:
+    if not existing:  # No existing content
         return incoming
-    if incoming.lower() in existing.lower():
+    if incoming.lower() in existing.lower():  # Avoid duplicate content
         return existing
-    return existing + "\n\n" + incoming
+    return existing + "\n\n" + incoming  # Append new content
 
 
 def get_or_create_character(session: Session, *, name: str, traits: str = "", arc: str = "") -> tuple[Character, bool]:

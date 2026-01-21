@@ -1,3 +1,11 @@
+"""
+Bible/Setting document parsing and AI editing utilities.
+
+This module provides functionality for parsing structured documents (story bibles,
+world-building documents) into sections and provides AI-assisted editing capabilities
+for maintaining comprehensive setting documentation in LoreKeeper.
+"""
+
 from __future__ import annotations
 
 import re
@@ -14,16 +22,17 @@ def parse_document_into_sections(content: str) -> dict[str, dict[str, Any]]:
     Parse document content into sections based on headers.
     Adapted from the original bible editor logic.
     """
-    # Define regex patterns for headers
+    # Define regex patterns for section headers (Roman numerals and named sections)
+    # Each pattern captures content until the next header or end of document
     patterns = [
-        r"(I\.\s.*?)(?=\n[IV]+\.|Problems|Ideas|Characters|$)",
-        r"(II\.\s.*?)(?=\n[IV]+\.|Problems|Ideas|Characters|$)",
-        r"(III\.\s.*?)(?=\n[IV]+\.|Problems|Ideas|Characters|$)",
-        r"(IV\.\s.*?)(?=\n[IV]+\.|Problems|Ideas|Characters|$)",
-        r"(Problems)(?=\n[IV]+\.|Ideas|Characters|$)",
-        r"(Ideas)(?=\n[IV]+\.|Problems|Characters|$)",
-        r"(Characters)(?=\n[IV]+\.|Problems|Ideas|World|$)",
-        r"(World)(?=\n[IV]+\.|Problems|Ideas|Characters|$)"
+        r"(I\.\s.*?)(?=\n[IV]+\.|Problems|Ideas|Characters|$)",      # Section I
+        r"(II\.\s.*?)(?=\n[IV]+\.|Problems|Ideas|Characters|$)",     # Section II
+        r"(III\.\s.*?)(?=\n[IV]+\.|Problems|Ideas|Characters|$)",    # Section III
+        r"(IV\.\s.*?)(?=\n[IV]+\.|Problems|Ideas|Characters|$)",     # Section IV
+        r"(Problems)(?=\n[IV]+\.|Ideas|Characters|$)",               # Problems section
+        r"(Ideas)(?=\n[IV]+\.|Problems|Characters|$)",               # Ideas section
+        r"(Characters)(?=\n[IV]+\.|Problems|Ideas|World|$)",         # Characters section
+        r"(World)(?=\n[IV]+\.|Problems|Ideas|Characters|$)"          # World section
     ]
 
     sections = {}

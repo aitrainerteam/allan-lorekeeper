@@ -1,3 +1,11 @@
+"""
+Bible/Setting documentation models.
+
+This module defines data models for managing comprehensive story documentation,
+including world-building elements, setting details, and narrative bible content.
+It supports structured organization of story background information.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

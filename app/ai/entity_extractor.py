@@ -1,3 +1,12 @@
+"""
+AI-powered entity extraction from text.
+
+This module provides functionality to automatically identify and extract story
+elements (characters, concepts, events, plot holes) from user-provided text using
+both heuristic rules and OpenAI's language models. It supports natural language
+processing to populate the LoreKeeper database with new entities.
+"""
+
 from __future__ import annotations
 
 import json
@@ -7,40 +16,22 @@ from typing import Any
 from sqlmodel import Session, select
 
 from app.ai.client import get_openai_client
+from app.core.constants import ACT_BEATS
 from app.models.codex import Character, Concept
 from app.models.problems import PlotHole
 from app.models.timeline import Event
 
 
-ACT_BEATS: dict[str, list[str]] = {
-    "ACT 1": [
-        "Epilogue",
-        "Exposition/Introduction",
-        "Inciting Incident",
-        "Second Thoughts",
-        "Climax Of Act One",
-    ],
-    "ACT 2": [
-        "Obstacle (1)",
-        "Rising Action",
-        "Midpoint",
-        "Obstacle (2)",
-        "Disaster",
-        "Climax Of Act Two",
-    ],
-    "ACT 3": [
-        "Relative Peace",
-        "Obstacle",
-        "Rising Action",
-        "Disaster",
-        "Climax Of Act III",
-        "Resolution",
-        "Falling Action",
-    ],
-}
-
-
 def _strip_json_fences(s: str) -> str:
+    """
+    Remove markdown code fences from a string.
+
+    Args:
+        s: Input string that may contain markdown code fences.
+
+    Returns:
+        str: String with code fences removed.
+    """
     s = (s or "").strip()
     if s.startswith("```"):
         # Handle ```json ... ``` or ``` ... ```
@@ -72,15 +63,6 @@ def _heuristic_extract(text: str) -> dict[str, Any]:
     events: list[dict[str, Any]] = []
     plot_holes: list[dict[str, str]] = []
 
-    # Don't extract from questions
-    if "?" in t or any(lower.startswith(word) for word in ["what", "who", "when", "where", "why", "how", "can ", "could ", "should ", "does ", "do ", "did ", "is ", "are ", "will ", "would "]):
-        return {
-            "characters": characters,
-            "concepts": concepts,
-            "events": events,
-            "plot_holes": plot_holes,
-            "source": "heuristic",
-        }
 
     # Character: "His name is Zion" / "named Zion" - be more specific
     m = re.search(
@@ -203,17 +185,41 @@ def _extract_explicit_plot_hole_command(text: str) -> dict[str, Any] | None:
     if "worldbuilding" in lower:
         kind = "worldbuilding"
 
-    # Try to capture a "title" after common delimiters
-    m = re.search(r"\b(?:saying|titled|title)\s*:\s*(.+)$", t, flags=re.IGNORECASE) or re.search(
-        r"\b(?:problem|issue|plot\s*hole|plothole)\b\s*:\s*(.+)$", t, flags=re.IGNORECASE
-    )
-    title = (m.group(1).strip() if m else "").strip()
+    # Try to capture a "title" after common delimiters and patterns
+    patterns = [
+        r"\b(?:saying|titled|title)\s*:\s*(.+)$",
+        r"\b(?:problem|issue|plot\s*hole|plothole)\b\s*:\s*(.+)$",
+        r"\b(?:problem|issue|plot\s*hole|plothole)\b\s+(?:about|regarding|for)\s+(.+)$",
+        r"\bcreate\s+(?:a\s+)?(?:new\s+)?(?:problem|issue)\s+(?:about|regarding|for)\s+(.+)$",
+        r"\badd\s+(?:a\s+)?(?:new\s+)?(?:problem|issue)\s+(?:about|regarding|for)\s+(.+)$",
+    ]
+    
+    title = ""
+    for pattern in patterns:
+        m = re.search(pattern, t, flags=re.IGNORECASE)
+        if m:
+            title = m.group(1).strip()
+            break
+    
     title = re.sub(r"\s+", " ", title)
 
     if not title:
-        # Fallback: use whole message (trimmed) as title, but keep it short
-        title = re.sub(r"\s+", " ", t)
-        title = title[:120].rstrip()
+        # Fallback: extract a meaningful title from the message
+        # Remove common command prefixes
+        fallback_text = re.sub(
+            r"^(?:create|add|new)\s+(?:a\s+)?(?:new\s+)?(?:problem|issue|plot\s*hole|plothole)\s*",
+            "", t, flags=re.IGNORECASE
+        ).strip()
+        if fallback_text:
+            title = fallback_text
+        else:
+            title = t
+    
+    # Generate a short title (<=80 chars) from the content
+    title = re.sub(r"\s+", " ", title).strip()
+    if len(title) > 80:
+        # Try to cut at a word boundary
+        title = title[:77].rsplit(" ", 1)[0] + "..."
 
     return {
         "characters": [],
@@ -231,6 +237,21 @@ def extract_entities_from_text(
     model: str = "gpt-4o-mini",
 ) -> dict[str, Any]:
     """
+    Extract story entities from text using AI or heuristic methods.
+
+    Analyzes input text to identify characters, concepts, events, and plot holes
+    that should be created or updated in the database. Uses OpenAI for complex
+    analysis or falls back to heuristic rules for simple cases.
+
+    Args:
+        session: Database session for entity lookups.
+        text: The text to analyze for entities.
+        model: OpenAI model to use for extraction (default: gpt-4o-mini).
+
+    Returns:
+        dict: Extracted entities with keys: characters, concepts, events, plot_holes, source.
+    """
+    """
     Returns a dict like:
       {
         "characters": [{"name": str, "traits": str, "arc": str}],
@@ -244,14 +265,6 @@ def extract_entities_from_text(
     if not cleaned:
         return {"characters": [], "concepts": [], "events": [], "plot_holes": [], "source": "heuristic"}
 
-    # Don't extract from questions unless they contain explicit creation commands
-    lower = cleaned.lower()
-    is_question = ("?" in cleaned or
-                  any(lower.startswith(word) for word in ["what", "who", "when", "where", "why", "how", "can ", "could ", "should ", "does ", "do ", "did ", "is ", "are ", "will ", "would "]))
-    has_creation_command = any(keyword in lower for keyword in ["create a", "create an", "add a", "add an", "new character", "new concept", "new event", "new plot hole", "new issue", "new problem"])
-
-    if is_question and not has_creation_command:
-        return {"characters": [], "concepts": [], "events": [], "plot_holes": [], "source": "heuristic"}
 
     forced = _extract_explicit_plot_hole_command(cleaned)
     if forced:
