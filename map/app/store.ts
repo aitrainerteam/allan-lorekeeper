@@ -7,6 +7,9 @@ const MAX_HISTORY_SIZE = 20;
 const AUTOSAVE_EDIT_THRESHOLD = 5;
 const AUTOSAVE_DEBOUNCE_MS = 30000; // 30 seconds minimum between autosaves
 
+export const MIN_ZOOM = 0.1;
+export const MAX_ZOOM = 10;
+
 interface UIState {
   activeTool: ToolType;
   setActiveTool: (t: ToolType) => void;
@@ -22,8 +25,12 @@ interface UIState {
   // Camera state
   camera: { k: number, x: number, y: number };
   setCamera: (camera: { k: number, x: number, y: number }) => void;
+  viewportSize: { width: number; height: number } | null;
+  setViewportSize: (size: { width: number; height: number } | null) => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  zoomIntent: 'in' | 'out' | null;
+  clearZoomIntent: () => void;
 
   // Brush settings
   brushSize: number;
@@ -89,14 +96,12 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   camera: { k: 1, x: 0, y: 0 },
   setCamera: (camera) => set({ camera }),
-  zoomIn: () => set((state) => {
-    const newK = Math.min(10, state.camera.k * 1.2);
-    return { camera: { ...state.camera, k: newK } };
-  }),
-  zoomOut: () => set((state) => {
-    const newK = Math.max(0.1, state.camera.k / 1.2);
-    return { camera: { ...state.camera, k: newK } };
-  }),
+  viewportSize: null,
+  setViewportSize: (size) => set({ viewportSize: size }),
+  zoomIn: () => set({ zoomIntent: 'in' }),
+  zoomOut: () => set({ zoomIntent: 'out' }),
+  zoomIntent: null,
+  clearZoomIntent: () => set({ zoomIntent: null }),
 
   brushSize: 50,
   setBrushSize: (size) => set({ brushSize: size }),

@@ -5,6 +5,17 @@ import { CanvasRenderer } from '../render/CanvasRenderer';
 import { ToolManager } from '../tools/ToolManager';
 import { useUIStore } from './store';
 import { MapPersistence } from '../core/MapPersistence';
+import { MIN_ZOOM, MAX_ZOOM } from './store';
+
+const ZOOM_ANIMATION_MS = 140;
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - (1 - t) ** 3;
+}
 
 const MapCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -13,11 +24,15 @@ const MapCanvas = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const { 
     map, setMap, activeLayer, activeTool, mapVersion, mapSeed, pointCount, camera, setCamera, showCapitalStars,
+    setViewportSize,
+    zoomIntent, clearZoomIntent,
     // History
     pushHistory, clearHistory,
     // Autosave
     incrementEditCount, resetEditCount, shouldAutosave, setLastSaveTime
   } = useUIStore();
+  const wheelZoomRafRef = useRef<number | null>(null);
+  const zoomIntentRafRef = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [hoverElement, setHoverElement] = useState<{ type: 'city' | 'castle' | 'marker' | 'state', data: any } | null>(null);
@@ -74,23 +89,26 @@ const MapCanvas = () => {
     const container = containerRef.current;
     if (!canvas || !container) return;
 
-    // Set initial canvas size
-    canvas.width = container.clientWidth || 800;
-    canvas.height = container.clientHeight || 600;
+    const updateSize = () => {
+      const w = container.clientWidth || 800;
+      const h = container.clientHeight || 600;
+      canvas.width = w;
+      canvas.height = h;
+      setViewportSize({ width: w, height: h });
+    };
 
-    // Create renderer
+    updateSize();
     const canvasRenderer = new CanvasRenderer(canvas);
     setRenderer(canvasRenderer);
     setIsInitialized(true);
 
-    const handleResize = () => {
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
-    };
-
+    const handleResize = () => updateSize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []); // Only run once on mount
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      setViewportSize(null);
+    };
+  }, [setViewportSize]);
 
   // Load from persistence OR Generate fresh map
   useEffect(() => {
@@ -133,6 +151,50 @@ const MapCanvas = () => {
     if (!map || !renderer) return;
     renderer.render(map, camera, activeLayer, showCapitalStars);
   }, [map, camera, renderer, activeLayer, showCapitalStars]);
+
+  // Smooth zoom when zoomIntent is set (sidebar +/- buttons)
+  useEffect(() => {
+    if (!zoomIntent || zoomIntentRafRef.current !== null) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const startCamera = { ...camera };
+    const rect = canvas.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const factor = zoomIntent === 'in' ? 1.2 : 1 / 1.2;
+    const targetK = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, startCamera.k * factor));
+    const targetX = centerX - (centerX - startCamera.x) * (targetK / startCamera.k);
+    const targetY = centerY - (centerY - startCamera.y) * (targetK / startCamera.k);
+    const endCamera = { k: targetK, x: targetX, y: targetY };
+
+    const startTime = performance.now();
+    const tick = () => {
+      const elapsed = performance.now() - startTime;
+      const t = Math.min(1, elapsed / ZOOM_ANIMATION_MS);
+      const eased = easeOutCubic(t);
+      setCamera({
+        k: lerp(startCamera.k, endCamera.k, eased),
+        x: lerp(startCamera.x, endCamera.x, eased),
+        y: lerp(startCamera.y, endCamera.y, eased),
+      });
+      if (t < 1) {
+        zoomIntentRafRef.current = requestAnimationFrame(tick);
+      } else {
+        zoomIntentRafRef.current = null;
+        clearZoomIntent();
+      }
+    };
+    zoomIntentRafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (zoomIntentRafRef.current !== null) {
+        cancelAnimationFrame(zoomIntentRafRef.current);
+        zoomIntentRafRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- capture camera only when zoomIntent changes
+  }, [zoomIntent, setCamera, clearZoomIntent]);
 
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -326,23 +388,43 @@ const MapCanvas = () => {
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    const zoomFactor = 0.1; // Increased sensitivity
+    const zoomFactor = 0.1;
     const delta = e.deltaY > 0 ? -zoomFactor : zoomFactor;
-    const newK = Math.max(0.1, Math.min(10, camera.k * (1 + delta)));
+    const targetK = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, camera.k * (1 + delta)));
 
-    // console.log('Wheel event:', { deltaY: e.deltaY, currentK: camera.k, newK });
-
-    // Zoom towards mouse position
     const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect) {
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+    if (!rect) return;
 
-      const newX = mouseX - (mouseX - camera.x) * (newK / camera.k);
-      const newY = mouseY - (mouseY - camera.y) * (newK / camera.k);
+    // Anchor zoom at viewport center (center of what you're viewing)
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const targetX = centerX - (centerX - camera.x) * (targetK / camera.k);
+    const targetY = centerY - (centerY - camera.y) * (targetK / camera.k);
 
-      setCamera({ k: newK, x: newX, y: newY });
+    const startCamera = { ...camera };
+    const endCamera = { k: targetK, x: targetX, y: targetY };
+
+    if (wheelZoomRafRef.current !== null) {
+      cancelAnimationFrame(wheelZoomRafRef.current);
     }
+
+    const startTime = performance.now();
+    const tick = () => {
+      const elapsed = performance.now() - startTime;
+      const t = Math.min(1, elapsed / ZOOM_ANIMATION_MS);
+      const eased = easeOutCubic(t);
+      setCamera({
+        k: lerp(startCamera.k, endCamera.k, eased),
+        x: lerp(startCamera.x, endCamera.x, eased),
+        y: lerp(startCamera.y, endCamera.y, eased),
+      });
+      if (t < 1) {
+        wheelZoomRafRef.current = requestAnimationFrame(tick);
+      } else {
+        wheelZoomRafRef.current = null;
+      }
+    };
+    wheelZoomRafRef.current = requestAnimationFrame(tick);
   }, [camera, setCamera]);
 
   const deleteElement = useCallback(() => {

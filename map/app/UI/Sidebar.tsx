@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useUIStore } from '../store';
+import { MIN_ZOOM, MAX_ZOOM } from '../store';
 import { Layers, Brush, Settings, Download, Plus, Minus, MapPin, Castle as CastleIcon, Map as MapIcon, List, Edit2, Save, X, Undo2, Redo2, FolderOpen } from 'lucide-react';
 import { MapPersistence } from '../../core/MapPersistence';
 import { BIOMES } from '../../core/TerrainGenerator';
@@ -23,6 +24,9 @@ const Sidebar = () => {
     setPointCount,
     showCapitalStars,
     setShowCapitalStars,
+    camera,
+    setCamera,
+    viewportSize,
     zoomIn,
     zoomOut,
     bumpMapVersion,
@@ -119,24 +123,31 @@ const Sidebar = () => {
   const exportAsPNG = useCallback(() => {
     const canvas = document.querySelector('canvas');
     if (!canvas || !map) return;
-    
+
     const link = document.createElement('a');
     link.download = `map-${map.seed}-${Date.now()}.png`;
     link.href = canvas.toDataURL('image/png');
+    link.style.display = 'none';
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   }, [map]);
 
   // Export as JSON
   const exportAsJSON = useCallback(() => {
     if (!map) return;
-    
+
     const serialized = MapPersistence.serialize(map);
     const blob = new Blob([JSON.stringify(serialized, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.download = `map-${map.seed}-${Date.now()}.json`;
-    link.href = URL.createObjectURL(blob);
+    link.href = url;
+    link.style.display = 'none';
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(link.href);
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   }, [map]);
 
   // Import from JSON
@@ -452,31 +463,62 @@ const Sidebar = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              zoomIn();
-            }}
-            className="p-2 rounded border border-slate-700 hover:bg-slate-800 flex items-center justify-center gap-2 text-sm"
-            title="Zoom In"
-          >
-            <Plus size={14} /> Zoom In
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              zoomOut();
-            }}
-            className="p-2 rounded border border-slate-700 hover:bg-slate-800 flex items-center justify-center gap-2 text-sm"
-            title="Zoom Out"
-          >
-            <Minus size={14} /> Zoom Out
-          </button>
+        <div className="mt-2 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-400 uppercase font-semibold">Zoom</span>
+            <span className="text-sm font-mono text-slate-300 tabular-nums" title="Zoom scale">
+              {Math.round(camera.k * 100)}%
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min={MIN_ZOOM}
+              max={MAX_ZOOM}
+              step={0.05}
+              value={camera.k}
+              onChange={(e) => {
+                const newK = parseFloat(e.target.value);
+                if (viewportSize) {
+                  const centerX = viewportSize.width / 2;
+                  const centerY = viewportSize.height / 2;
+                  const newX = centerX - (centerX - camera.x) * (newK / camera.k);
+                  const newY = centerY - (centerY - camera.y) * (newK / camera.k);
+                  setCamera({ k: newK, x: newX, y: newY });
+                } else {
+                  setCamera({ ...camera, k: newK });
+                }
+              }}
+              className="flex-1 h-2 rounded-lg appearance-none bg-slate-700 accent-indigo-500 cursor-pointer"
+              title="Zoom level"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                zoomIn();
+              }}
+              className="p-2 rounded border border-slate-700 hover:bg-slate-800 flex items-center justify-center gap-2 text-sm"
+              title="Zoom In"
+            >
+              <Plus size={14} /> Zoom In
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                zoomOut();
+              }}
+              className="p-2 rounded border border-slate-700 hover:bg-slate-800 flex items-center justify-center gap-2 text-sm"
+              title="Zoom Out"
+            >
+              <Minus size={14} /> Zoom Out
+            </button>
+          </div>
         </div>
       </div>
 
