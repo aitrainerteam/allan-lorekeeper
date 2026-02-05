@@ -38,7 +38,7 @@
       </label>
       <div class="flex items-end justify-end gap-2">
         <button
-          class="rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900"
+          class="rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900 transition-colors"
           type="button"
           hx-get="/codex/concepts/{{ c.id }}/row"
           hx-target="#concept-row-{{ c.id }}"
@@ -46,7 +46,7 @@
         >
           Cancel
         </button>
-        <button class="rounded bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500" type="submit">
+        <button class="rounded bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500 transition-colors" type="submit">
           Save
         </button>
       </div>

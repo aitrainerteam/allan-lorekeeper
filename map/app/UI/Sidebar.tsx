@@ -113,14 +113,14 @@ const Sidebar = () => {
   console.log('Sidebar render:', { activeTool, activeLayer });
 
   return (
-    <div className="w-80 h-full shrink-0 bg-gray-800 border-l border-gray-700 shadow-xl flex flex-col z-20 pointer-events-auto relative">
-      <div className="p-4 border-b border-gray-700 font-bold text-xl flex items-center gap-2">
-        <MapIcon className="text-blue-500" />
+    <div className="w-80 h-full shrink-0 bg-slate-900 border-l border-slate-800 shadow-xl flex flex-col z-20 pointer-events-auto relative">
+      <div className="p-4 border-b border-slate-800 font-bold text-xl flex items-center gap-2">
+        <MapIcon className="text-indigo-500" />
         LoreKeeper Map
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-700">
+      <div className="flex border-b border-slate-800">
         <button
           type="button"
           onClick={(e) => {
@@ -128,7 +128,7 @@ const Sidebar = () => {
             e.stopPropagation();
             setActiveTab('layers');
           }}
-          className={`flex-1 p-3 hover:bg-gray-700 flex justify-center ${activeTab === 'layers' ? 'bg-gray-600' : ''}`}
+          className={`flex-1 p-3 hover:bg-slate-800 flex justify-center ${activeTab === 'layers' ? 'bg-slate-700' : ''}`}
           title="Layers"
         >
           <Layers size={20} />
@@ -140,7 +140,7 @@ const Sidebar = () => {
             e.stopPropagation();
             setActiveTab('entities');
           }}
-          className={`flex-1 p-3 hover:bg-gray-700 flex justify-center ${activeTab === 'entities' ? 'bg-gray-600' : ''}`}
+          className={`flex-1 p-3 hover:bg-slate-800 flex justify-center ${activeTab === 'entities' ? 'bg-slate-700' : ''}`}
           title="Entities List"
         >
           <List size={20} />
@@ -152,7 +152,7 @@ const Sidebar = () => {
             e.stopPropagation();
             setActiveTab('brush');
           }}
-          className={`flex-1 p-3 hover:bg-gray-700 flex justify-center ${activeTab === 'brush' ? 'bg-gray-600' : ''}`}
+          className={`flex-1 p-3 hover:bg-slate-800 flex justify-center ${activeTab === 'brush' ? 'bg-slate-700' : ''}`}
         >
           <Brush size={20} />
         </button>
@@ -163,7 +163,7 @@ const Sidebar = () => {
             e.stopPropagation();
             setActiveTab('settings');
           }}
-          className={`flex-1 p-3 hover:bg-gray-700 flex justify-center ${activeTab === 'settings' ? 'bg-gray-600' : ''}`}
+          className={`flex-1 p-3 hover:bg-slate-800 flex justify-center ${activeTab === 'settings' ? 'bg-slate-700' : ''}`}
         >
           <Settings size={20} />
         </button>
@@ -174,15 +174,15 @@ const Sidebar = () => {
             e.stopPropagation();
             setActiveTab('export');
           }}
-          className={`flex-1 p-3 hover:bg-gray-700 flex justify-center ${activeTab === 'export' ? 'bg-gray-600' : ''}`}
+          className={`flex-1 p-3 hover:bg-slate-800 flex justify-center ${activeTab === 'export' ? 'bg-slate-700' : ''}`}
         >
           <Download size={20} />
         </button>
       </div>
 
       {/* Tools Section - Always Visible */}
-      <div className="p-4 border-b border-gray-700">
-        <h3 className="text-sm uppercase text-gray-400 font-semibold mb-2">Tools</h3>
+      <div className="p-4 border-b border-slate-800">
+        <h3 className="text-sm uppercase text-slate-400 font-semibold mb-2">Tools</h3>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -191,7 +191,7 @@ const Sidebar = () => {
               e.stopPropagation();
               setActiveTool('select');
             }}
-            className={`p-2 rounded border border-gray-600 text-sm flex items-center justify-center gap-2 ${activeTool === 'select' ? 'bg-blue-600 border-blue-400' : 'hover:bg-gray-700'}`}
+            className={`p-2 rounded border border-slate-700 text-sm flex items-center justify-center gap-2 ${activeTool === 'select' ? 'bg-indigo-600 border-indigo-400' : 'hover:bg-slate-800'}`}
           >
             Pan
           </button>
@@ -202,7 +202,7 @@ const Sidebar = () => {
               e.stopPropagation();
               setActiveTool('height-paint');
             }}
-            className={`p-2 rounded border border-gray-600 text-sm flex items-center justify-center gap-2 ${activeTool === 'height-paint' ? 'bg-blue-600 border-blue-400' : 'hover:bg-gray-700'}`}
+            className={`p-2 rounded border border-slate-700 text-sm flex items-center justify-center gap-2 ${activeTool === 'height-paint' ? 'bg-indigo-600 border-indigo-400' : 'hover:bg-slate-800'}`}
             title="Left Click: Raise, Alt+Click: Lower"
           >
             Height
@@ -214,7 +214,7 @@ const Sidebar = () => {
               e.stopPropagation();
               setActiveTool('biome-paint');
             }}
-            className={`p-2 rounded border border-gray-600 text-sm flex items-center justify-center gap-2 ${activeTool === 'biome-paint' ? 'bg-blue-600 border-blue-400' : 'hover:bg-gray-700'}`}
+            className={`p-2 rounded border border-slate-700 text-sm flex items-center justify-center gap-2 ${activeTool === 'biome-paint' ? 'bg-indigo-600 border-indigo-400' : 'hover:bg-slate-800'}`}
           >
             Biome
           </button>
@@ -225,7 +225,7 @@ const Sidebar = () => {
               e.stopPropagation();
               setActiveTool('city-placer');
             }}
-            className={`p-2 rounded border border-gray-600 text-sm flex items-center justify-center gap-2 ${activeTool === 'city-placer' ? 'bg-blue-600 border-blue-400' : 'hover:bg-gray-700'}`}
+            className={`p-2 rounded border border-slate-700 text-sm flex items-center justify-center gap-2 ${activeTool === 'city-placer' ? 'bg-indigo-600 border-indigo-400' : 'hover:bg-slate-800'}`}
           >
             City
           </button>
@@ -236,7 +236,7 @@ const Sidebar = () => {
               e.stopPropagation();
               setActiveTool('castle-placer');
             }}
-            className={`p-2 rounded border border-gray-600 text-sm flex items-center justify-center gap-2 ${activeTool === 'castle-placer' ? 'bg-blue-600 border-blue-400' : 'hover:bg-gray-700'}`}
+            className={`p-2 rounded border border-slate-700 text-sm flex items-center justify-center gap-2 ${activeTool === 'castle-placer' ? 'bg-indigo-600 border-indigo-400' : 'hover:bg-slate-800'}`}
           >
             <CastleIcon size={14} /> Castle
           </button>
@@ -247,7 +247,7 @@ const Sidebar = () => {
               e.stopPropagation();
               setActiveTool('marker-placer');
             }}
-            className={`p-2 rounded border border-gray-600 text-sm flex items-center justify-center gap-2 ${activeTool === 'marker-placer' ? 'bg-blue-600 border-blue-400' : 'hover:bg-gray-700'}`}
+            className={`p-2 rounded border border-slate-700 text-sm flex items-center justify-center gap-2 ${activeTool === 'marker-placer' ? 'bg-indigo-600 border-indigo-400' : 'hover:bg-slate-800'}`}
           >
             <MapPin size={14} /> Marker
           </button>
@@ -261,7 +261,7 @@ const Sidebar = () => {
               e.stopPropagation();
               zoomIn();
             }}
-            className="p-2 rounded border border-gray-600 hover:bg-gray-700 flex items-center justify-center gap-2 text-sm"
+            className="p-2 rounded border border-slate-700 hover:bg-slate-800 flex items-center justify-center gap-2 text-sm"
             title="Zoom In"
           >
             <Plus size={14} /> Zoom In
@@ -273,7 +273,7 @@ const Sidebar = () => {
               e.stopPropagation();
               zoomOut();
             }}
-            className="p-2 rounded border border-gray-600 hover:bg-gray-700 flex items-center justify-center gap-2 text-sm"
+            className="p-2 rounded border border-slate-700 hover:bg-slate-800 flex items-center justify-center gap-2 text-sm"
             title="Zoom Out"
           >
             <Minus size={14} /> Zoom Out
@@ -285,7 +285,7 @@ const Sidebar = () => {
       <div className="p-4 flex-1 overflow-y-auto">
         {activeTab === 'layers' && (
           <div className="mb-6">
-            <h3 className="text-sm uppercase text-gray-400 font-semibold mb-2">Layers</h3>
+            <h3 className="text-sm uppercase text-slate-400 font-semibold mb-2">Layers</h3>
             <div className="space-y-2">
               <button
                 type="button"
@@ -294,7 +294,7 @@ const Sidebar = () => {
                   e.stopPropagation();
                   setLayer('height');
                 }}
-                className={`w-full text-left px-3 py-2 rounded ${activeLayer === 'height' ? 'bg-blue-600' : 'bg-gray-700'} hover:bg-gray-600`}
+                className={`w-full text-left px-3 py-2 rounded ${activeLayer === 'height' ? 'bg-indigo-600' : 'bg-slate-800'} hover:bg-slate-700`}
               >
                 Heightmap
               </button>
@@ -305,7 +305,7 @@ const Sidebar = () => {
                   e.stopPropagation();
                   setLayer('political');
                 }}
-                className={`w-full text-left px-3 py-2 rounded ${activeLayer === 'political' ? 'bg-blue-600' : 'bg-gray-700'} hover:bg-gray-600`}
+                className={`w-full text-left px-3 py-2 rounded ${activeLayer === 'political' ? 'bg-indigo-600' : 'bg-slate-800'} hover:bg-slate-700`}
               >
                 Political
               </button>
@@ -313,18 +313,18 @@ const Sidebar = () => {
 
             {/* States List */}
             {activeLayer === 'political' && map && map.states.length > 0 && (
-              <div className="mt-6 border-t border-gray-700 pt-4">
-                <h3 className="text-sm uppercase text-gray-400 font-semibold mb-2">States ({map.states.length})</h3>
+              <div className="mt-6 border-t border-slate-800 pt-4">
+                <h3 className="text-sm uppercase text-slate-400 font-semibold mb-2">States ({map.states.length})</h3>
                 <div className="space-y-1 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                   {map.states.map(state => (
-                    <div key={state.id} className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-default group">
+                    <div key={state.id} className="flex items-center gap-3 p-2 rounded hover:bg-slate-800 cursor-default group">
                       <div
                         className="w-4 h-4 rounded shadow-sm shrink-0 border border-black/20"
                         style={{ backgroundColor: state.color }}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate text-gray-200">{state.name}</div>
-                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">{state.cellCount} regions</div>
+                        <div className="text-sm font-medium truncate text-slate-200">{state.name}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-wider">{state.cellCount} regions</div>
                       </div>
                     </div>
                   ))}
@@ -334,15 +334,15 @@ const Sidebar = () => {
 
             {/* Cities List */}
             {map && map.cities.length > 0 && (
-              <div className="mt-6 border-t border-gray-700 pt-4">
-                <h3 className="text-sm uppercase text-gray-400 font-semibold mb-2">Cities & Settlements ({map.cities.length})</h3>
+              <div className="mt-6 border-t border-slate-800 pt-4">
+                <h3 className="text-sm uppercase text-slate-400 font-semibold mb-2">Cities & Settlements ({map.cities.length})</h3>
                 <div className="space-y-1 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                   {[...map.cities].sort((a, b) => b.population - a.population).map(city => (
-                    <div key={city.id} className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-default group">
+                    <div key={city.id} className="flex items-center gap-3 p-2 rounded hover:bg-slate-800 cursor-default group">
                       <div className={`w-2 h-2 rounded-full shrink-0 ${city.type === 'Capital' ? 'bg-red-500' : city.type === 'Town' ? 'bg-white' : 'bg-gray-400'}`} />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate text-gray-200">{city.name.split(' (')[0]}</div>
-                        <div className="flex justify-between items-center text-[10px] text-gray-500 uppercase tracking-wider">
+                        <div className="text-sm font-medium truncate text-slate-200">{city.name.split(' (')[0]}</div>
+                        <div className="flex justify-between items-center text-[10px] text-slate-500 uppercase tracking-wider">
                           <span>{city.type}</span>
                           <span>{city.population.toLocaleString()} pop</span>
                         </div>
@@ -357,34 +357,34 @@ const Sidebar = () => {
 
         {activeTab === 'entities' && (
           <div className="mb-6 pb-20">
-            <h3 className="text-sm uppercase text-gray-400 font-semibold mb-4">Map Entities</h3>
+            <h3 className="text-sm uppercase text-slate-400 font-semibold mb-4">Map Entities</h3>
 
             {/* Cities Section */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-white"></div> Cities & Towns
                 </h4>
-                <span className="text-xs text-gray-500">{map?.cities.length || 0}</span>
+                <span className="text-xs text-slate-500">{map?.cities.length || 0}</span>
               </div>
 
               <div className="space-y-2">
                 {map?.cities.map(city => (
-                  <div key={city.id} className="bg-gray-700/50 rounded p-2 border border-gray-700 hover:border-gray-600 transition-colors">
+                  <div key={city.id} className="bg-slate-800/50 rounded p-2 border border-slate-800 hover:border-slate-700 transition-colors">
                     {editingEntity?.type === 'city' && editingEntity.id === city.id ? (
                       <div className="space-y-2">
                         <input
                           type="text"
                           value={editForm.name}
                           onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs"
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
                           placeholder="City Name"
                         />
                         <div className="flex gap-2">
                           <select
                             value={editForm.type}
                             onChange={e => setEditForm({ ...editForm, type: e.target.value })}
-                            className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs"
+                            className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
                           >
                             <option value="Town">Town</option>
                             <option value="City">City</option>
@@ -395,25 +395,25 @@ const Sidebar = () => {
                             type="number"
                             value={editForm.population}
                             onChange={e => setEditForm({ ...editForm, population: parseInt(e.target.value) })}
-                            className="w-20 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs"
+                            className="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
                             placeholder="Pop"
                           />
                         </div>
                         <div className="flex justify-end gap-2 mt-2">
-                          <button onClick={cancelEditing} className="p-1 hover:bg-gray-600 rounded text-gray-400"><X size={14} /></button>
-                          <button onClick={saveEntity} className="p-1 bg-blue-600 hover:bg-blue-500 rounded text-white"><Save size={14} /></button>
+                          <button onClick={cancelEditing} className="p-1 hover:bg-slate-700 rounded text-slate-400"><X size={14} /></button>
+                          <button onClick={saveEntity} className="p-1 bg-indigo-600 hover:bg-indigo-500 rounded text-white"><Save size={14} /></button>
                         </div>
                       </div>
                     ) : (
                       <div className="flex justify-between items-start group">
                         <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-200">{city.name}</div>
-                          <div className="text-[10px] text-gray-400">{city.type} • Pop: {city.population.toLocaleString()}</div>
+                          <div className="text-sm font-medium text-slate-200">{city.name}</div>
+                          <div className="text-[10px] text-slate-400">{city.type} • Pop: {city.population.toLocaleString()}</div>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                           <button
                             onClick={() => startEditing('city', city)}
-                            className="p-1 hover:bg-gray-600 rounded text-gray-400"
+                            className="p-1 hover:bg-slate-700 rounded text-slate-400"
                             title="Edit"
                           >
                             <Edit2 size={12} />
@@ -430,34 +430,34 @@ const Sidebar = () => {
                     )}
                   </div>
                 ))}
-                {(!map?.cities || map.cities.length === 0) && <div className="text-xs text-gray-500 italic">No cities placed yet. Use the City tool.</div>}
+                {(!map?.cities || map.cities.length === 0) && <div className="text-xs text-slate-500 italic">No cities placed yet. Use the City tool.</div>}
               </div>
             </div>
 
             {/* Castles Section */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
                   <CastleIcon size={12} /> Castles & Forts
                 </h4>
-                <span className="text-xs text-gray-500">{map?.castles.length || 0}</span>
+                <span className="text-xs text-slate-500">{map?.castles.length || 0}</span>
               </div>
               <div className="space-y-2">
                 {map?.castles.map(castle => (
-                  <div key={castle.id} className="bg-gray-700/50 rounded p-2 border border-gray-700 hover:border-gray-600 transition-colors">
+                  <div key={castle.id} className="bg-slate-800/50 rounded p-2 border border-slate-800 hover:border-slate-700 transition-colors">
                     {editingEntity?.type === 'castle' && editingEntity.id === castle.id ? (
                       <div className="space-y-2">
                         <input
                           type="text"
                           value={editForm.name}
                           onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs"
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
                           placeholder="Castle Name"
                         />
                         <select
                           value={editForm.type}
                           onChange={e => setEditForm({ ...editForm, type: e.target.value })}
-                          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs"
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
                         >
                           <option value="Keep">Keep</option>
                           <option value="Fort">Fort</option>
@@ -465,20 +465,20 @@ const Sidebar = () => {
                           <option value="Outpost">Outpost</option>
                         </select>
                         <div className="flex justify-end gap-2 mt-2">
-                          <button onClick={cancelEditing} className="p-1 hover:bg-gray-600 rounded text-gray-400"><X size={14} /></button>
-                          <button onClick={saveEntity} className="p-1 bg-blue-600 hover:bg-blue-500 rounded text-white"><Save size={14} /></button>
+                          <button onClick={cancelEditing} className="p-1 hover:bg-slate-700 rounded text-slate-400"><X size={14} /></button>
+                          <button onClick={saveEntity} className="p-1 bg-indigo-600 hover:bg-indigo-500 rounded text-white"><Save size={14} /></button>
                         </div>
                       </div>
                     ) : (
                       <div className="flex justify-between items-start group">
                         <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-200">{castle.name}</div>
-                          <div className="text-[10px] text-gray-400">{castle.type}</div>
+                          <div className="text-sm font-medium text-slate-200">{castle.name}</div>
+                          <div className="text-[10px] text-slate-400">{castle.type}</div>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                           <button
                             onClick={() => startEditing('castle', castle)}
-                            className="p-1 hover:bg-gray-600 rounded text-gray-400"
+                            className="p-1 hover:bg-slate-700 rounded text-slate-400"
                             title="Edit"
                           >
                             <Edit2 size={12} />
@@ -495,28 +495,28 @@ const Sidebar = () => {
                     )}
                   </div>
                 ))}
-                {(!map?.castles || map.castles.length === 0) && <div className="text-xs text-gray-500 italic">No castles placed yet. Use the Castle tool.</div>}
+                {(!map?.castles || map.castles.length === 0) && <div className="text-xs text-slate-500 italic">No castles placed yet. Use the Castle tool.</div>}
               </div>
             </div>
 
             {/* Markers Section */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
                   <MapPin size={12} /> Markers
                 </h4>
-                <span className="text-xs text-gray-500">{map?.markers.length || 0}</span>
+                <span className="text-xs text-slate-500">{map?.markers.length || 0}</span>
               </div>
               <div className="space-y-2">
                 {map?.markers.map(marker => (
-                  <div key={marker.id} className="bg-gray-700/50 rounded p-2 border border-gray-700 hover:border-gray-600 transition-colors">
+                  <div key={marker.id} className="bg-slate-800/50 rounded p-2 border border-slate-800 hover:border-slate-700 transition-colors">
                     {editingEntity?.type === 'marker' && editingEntity.id === marker.id ? (
                       <div className="space-y-2">
                         <input
                           type="text"
                           value={editForm.name}
                           onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs"
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
                           placeholder="Marker Label"
                         />
                         <div className="flex gap-2">
@@ -524,7 +524,7 @@ const Sidebar = () => {
                             type="text"
                             value={editForm.icon}
                             onChange={e => setEditForm({ ...editForm, icon: e.target.value })}
-                            className="w-10 text-center bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs"
+                            className="w-10 text-center bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
                             placeholder="Icon"
                             title="Icon emoji"
                           />
@@ -532,27 +532,27 @@ const Sidebar = () => {
                             type="text"
                             value={editForm.note}
                             onChange={e => setEditForm({ ...editForm, note: e.target.value })}
-                            className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs"
+                            className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
                             placeholder="Note..."
                           />
                         </div>
                         <div className="flex justify-end gap-2 mt-2">
-                          <button onClick={cancelEditing} className="p-1 hover:bg-gray-600 rounded text-gray-400"><X size={14} /></button>
-                          <button onClick={saveEntity} className="p-1 bg-blue-600 hover:bg-blue-500 rounded text-white"><Save size={14} /></button>
+                          <button onClick={cancelEditing} className="p-1 hover:bg-slate-700 rounded text-slate-400"><X size={14} /></button>
+                          <button onClick={saveEntity} className="p-1 bg-indigo-600 hover:bg-indigo-500 rounded text-white"><Save size={14} /></button>
                         </div>
                       </div>
                     ) : (
                       <div className="flex justify-between items-start group">
                         <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-200 flex items-center gap-2">
+                          <div className="text-sm font-medium text-slate-200 flex items-center gap-2">
                             <span>{marker.icon}</span> {marker.name}
                           </div>
-                          <div className="text-[10px] text-gray-400 truncate">{marker.note}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{marker.note}</div>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                           <button
                             onClick={() => startEditing('marker', marker)}
-                            className="p-1 hover:bg-gray-600 rounded text-gray-400"
+                            className="p-1 hover:bg-slate-700 rounded text-slate-400"
                             title="Edit"
                           >
                             <Edit2 size={12} />
@@ -569,44 +569,44 @@ const Sidebar = () => {
                     )}
                   </div>
                 ))}
-                {(!map?.markers || map.markers.length === 0) && <div className="text-xs text-gray-500 italic">No markers placed yet. Use the Marker tool.</div>}
+                {(!map?.markers || map.markers.length === 0) && <div className="text-xs text-slate-500 italic">No markers placed yet. Use the Marker tool.</div>}
               </div>
             </div>
 
             {/* States Section */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
                   <MapIcon size={12} /> Regions & States
                 </h4>
-                <span className="text-xs text-gray-500">{map?.states.length || 0}</span>
+                <span className="text-xs text-slate-500">{map?.states.length || 0}</span>
               </div>
               <div className="space-y-2">
                 {map?.states.map(state => (
-                  <div key={state.id} className="bg-gray-700/50 rounded p-2 border border-gray-700 hover:border-gray-600 transition-colors">
+                  <div key={state.id} className="bg-slate-800/50 rounded p-2 border border-slate-800 hover:border-slate-700 transition-colors">
                     {editingEntity?.type === 'state' && editingEntity.id === state.id ? (
                       <div className="space-y-2">
                         <input
                           type="text"
                           value={editForm.name}
                           onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs"
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
                           placeholder="State Name"
                         />
                         <div className="flex gap-2 items-center">
-                          <label className="text-[10px] text-gray-400">Color:</label>
+                          <label className="text-[10px] text-slate-400">Color:</label>
                           <input
                             type="color"
                             value={editForm.color}
                             onChange={e => setEditForm({ ...editForm, color: e.target.value })}
-                            className="w-12 h-6 bg-gray-800 border border-gray-600 rounded cursor-pointer"
+                            className="w-12 h-6 bg-slate-900 border border-slate-700 rounded cursor-pointer"
                           />
                         </div>
                         <div className="flex justify-between items-center mt-2">
-                          <div className="text-[10px] text-gray-400">{state.cellCount} regions</div>
+                          <div className="text-[10px] text-slate-400">{state.cellCount} regions</div>
                           <div className="flex gap-2">
-                            <button onClick={cancelEditing} className="p-1 hover:bg-gray-600 rounded text-gray-400"><X size={14} /></button>
-                            <button onClick={saveEntity} className="p-1 bg-blue-600 hover:bg-blue-500 rounded text-white"><Save size={14} /></button>
+                            <button onClick={cancelEditing} className="p-1 hover:bg-slate-700 rounded text-slate-400"><X size={14} /></button>
+                            <button onClick={saveEntity} className="p-1 bg-indigo-600 hover:bg-indigo-500 rounded text-white"><Save size={14} /></button>
                           </div>
                         </div>
                       </div>
@@ -618,14 +618,14 @@ const Sidebar = () => {
                             style={{ backgroundColor: state.color }}
                           />
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-gray-200">{state.name}</div>
-                            <div className="text-[10px] text-gray-400">{state.cellCount} regions</div>
+                            <div className="text-sm font-medium text-slate-200">{state.name}</div>
+                            <div className="text-[10px] text-slate-400">{state.cellCount} regions</div>
                           </div>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                           <button
                             onClick={() => startEditing('state', state)}
-                            className="p-1 hover:bg-gray-600 rounded text-gray-400"
+                            className="p-1 hover:bg-slate-700 rounded text-slate-400"
                             title="Edit"
                           >
                             <Edit2 size={12} />
@@ -642,7 +642,7 @@ const Sidebar = () => {
                     )}
                   </div>
                 ))}
-                {(!map?.states || map.states.length === 0) && <div className="text-xs text-gray-500 italic">No states generated yet.</div>}
+                {(!map?.states || map.states.length === 0) && <div className="text-xs text-slate-500 italic">No states generated yet.</div>}
               </div>
             </div>
 
@@ -651,12 +651,12 @@ const Sidebar = () => {
 
         {activeTab === 'brush' && (
           <div className="mb-6">
-            <h3 className="text-sm uppercase text-gray-400 font-semibold mb-2">Brush Settings</h3>
+            <h3 className="text-sm uppercase text-slate-400 font-semibold mb-2">Brush Settings</h3>
             <div className="space-y-6">
               <div>
                 <div className="flex justify-between mb-1">
-                  <label className="block text-sm text-gray-300">Size</label>
-                  <span className="text-xs text-blue-400">{brushSize}px</span>
+                  <label className="block text-sm text-slate-300">Size</label>
+                  <span className="text-xs text-indigo-400">{brushSize}px</span>
                 </div>
                 <input
                   type="range"
@@ -664,15 +664,15 @@ const Sidebar = () => {
                   max="200"
                   value={brushSize}
                   onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                  className="w-full accent-blue-500"
+                  className="w-full accent-indigo-500"
                 />
               </div>
 
               {activeTool === 'height-paint' && (
                 <div>
                   <div className="flex justify-between mb-1">
-                    <label className="block text-sm text-gray-300">Intensity</label>
-                    <span className="text-xs text-blue-400">{brushIntensity.toFixed(1)}</span>
+                    <label className="block text-sm text-slate-300">Intensity</label>
+                    <span className="text-xs text-indigo-400">{brushIntensity.toFixed(1)}</span>
                   </div>
                   <input
                     type="range"
@@ -681,21 +681,21 @@ const Sidebar = () => {
                     step="0.01"
                     value={brushIntensity}
                     onChange={(e) => setBrushIntensity(parseFloat(e.target.value))}
-                    className="w-full accent-blue-500"
+                    className="w-full accent-indigo-500"
                   />
-                  <p className="text-[10px] text-gray-500 mt-1 italic">Tip: Hold Alt to lower land</p>
+                  <p className="text-[10px] text-slate-500 mt-1 italic">Tip: Hold Alt to lower land</p>
                 </div>
               )}
 
               {activeTool === 'biome-paint' && (
                 <div className="space-y-2">
-                  <label className="block text-sm text-gray-300">Target Biome</label>
+                  <label className="block text-sm text-slate-300">Target Biome</label>
                   <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                     {Object.values(BIOMES).map(biome => (
                       <button
                         key={biome.type}
                         onClick={() => setSelectedBiome(biome.type)}
-                        className={`flex items-center gap-2 p-1.5 rounded border text-[11px] transition-colors ${selectedBiome === biome.type ? 'bg-blue-600 border-blue-400' : 'bg-gray-700 border-gray-600 hover:bg-gray-600'}`}
+                        className={`flex items-center gap-2 p-1.5 rounded border text-[11px] transition-colors ${selectedBiome === biome.type ? 'bg-indigo-600 border-indigo-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'}`}
                       >
                         <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: biome.color }} />
                         <span className="truncate">{biome.name}</span>
@@ -710,16 +710,16 @@ const Sidebar = () => {
 
         {activeTab === 'settings' && (
           <div className="mb-6">
-            <h3 className="text-sm uppercase text-gray-400 font-semibold mb-2">Map Settings</h3>
+            <h3 className="text-sm uppercase text-slate-400 font-semibold mb-2">Map Settings</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Map Seed</label>
+                <label className="block text-sm text-slate-300 mb-1">Map Seed</label>
                 <div className="flex gap-2">
                   <input
                     type="number"
                     value={mapSeed}
                     onChange={(e) => setMapSeed(parseInt(e.target.value))}
-                    className="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                    className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm"
                   />
                   <button
                     type="button"
@@ -728,7 +728,7 @@ const Sidebar = () => {
                       e.stopPropagation();
                       setMapSeed(Math.floor(Math.random() * 1000000));
                     }}
-                    className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm hover:bg-gray-600"
+                    className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm hover:bg-slate-700"
                     title="Random Seed"
                   >
                     🎲
@@ -736,17 +736,17 @@ const Sidebar = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Cell Count</label>
+                <label className="block text-sm text-slate-300 mb-1">Cell Count</label>
                 <input
                   type="number"
                   value={pointCount}
                   onChange={(e) => setPointCount(parseInt(e.target.value))}
-                  className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                  className="w-full px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm"
                 />
-                <span className="text-xs text-gray-500">Higher values = more detail (slower)</span>
+                <span className="text-xs text-slate-500">Higher values = more detail (slower)</span>
               </div>
               <div className="flex items-center justify-between">
-                <label className="text-sm text-gray-300">Capital Stars</label>
+                <label className="text-sm text-slate-300">Capital Stars</label>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -754,7 +754,7 @@ const Sidebar = () => {
                     e.stopPropagation();
                     setShowCapitalStars(!showCapitalStars);
                   }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showCapitalStars ? 'bg-blue-600' : 'bg-gray-600'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showCapitalStars ? 'bg-indigo-600' : 'bg-slate-700'}`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showCapitalStars ? 'translate-x-6' : 'translate-x-1'}`}
@@ -769,7 +769,7 @@ const Sidebar = () => {
                   MapPersistence.clear();
                   bumpMapVersion();
                 }}
-                className="w-full px-3 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center justify-center gap-2"
+                className="w-full px-3 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold flex items-center justify-center gap-2"
               >
                 🗺️ Generate New Map
               </button>
@@ -779,21 +779,21 @@ const Sidebar = () => {
 
         {activeTab === 'export' && (
           <div className="mb-6">
-            <h3 className="text-sm uppercase text-gray-400 font-semibold mb-2">Export</h3>
+            <h3 className="text-sm uppercase text-slate-400 font-semibold mb-2">Export</h3>
             <div className="space-y-2">
               <button
-                className="w-full px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-left disabled:opacity-50"
+                className="w-full px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-left disabled:opacity-50"
                 disabled
               >
                 Export as PNG
               </button>
               <button
-                className="w-full px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-left disabled:opacity-50"
+                className="w-full px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-left disabled:opacity-50"
                 disabled
               >
                 Export as JSON
               </button>
-              <span className="text-xs text-gray-500 block">Export functionality coming soon</span>
+              <span className="text-xs text-slate-500 block">Export functionality coming soon</span>
             </div>
           </div>
         )}
