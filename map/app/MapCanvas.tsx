@@ -11,11 +11,62 @@ const MapCanvas = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [renderer, setRenderer] = useState<CanvasRenderer | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const { map, setMap, activeLayer, activeTool, mapVersion, mapSeed, pointCount, camera, setCamera, showCapitalStars } = useUIStore();
+  const { 
+    map, setMap, activeLayer, activeTool, mapVersion, mapSeed, pointCount, camera, setCamera, showCapitalStars,
+    // History
+    pushHistory, clearHistory,
+    // Autosave
+    incrementEditCount, resetEditCount, shouldAutosave, setLastSaveTime
+  } = useUIStore();
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [hoverElement, setHoverElement] = useState<{ type: 'city' | 'castle' | 'marker' | 'state', data: any } | null>(null);
   const [editingElement, setEditingElement] = useState<{ type: 'city' | 'castle' | 'marker' | 'state', data: any } | null>(null);
+
+  // Get canvas thumbnail for saves (sized for sharp preview in Load Map modal)
+  const getCanvasThumbnail = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return '';
+
+    const targetLongSide = 480; // Match modal preview size so thumbnails aren't upscaled
+    const w = canvas.width;
+    const h = canvas.height;
+    const scale = Math.min(1, targetLongSide / Math.max(w, h));
+    const thumbW = Math.round(w * scale);
+    const thumbH = Math.round(h * scale);
+
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = thumbW;
+    thumbCanvas.height = thumbH;
+    const ctx = thumbCanvas.getContext('2d');
+    if (!ctx) return '';
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(canvas, 0, 0, w, h, 0, 0, thumbW, thumbH);
+    return thumbCanvas.toDataURL('image/png');
+  }, []);
+
+  // Check and perform autosave if conditions are met
+  const checkAutosave = useCallback(() => {
+    if (!map) return;
+    
+    if (shouldAutosave()) {
+      const thumbnail = getCanvasThumbnail();
+      MapPersistence.saveVersion(map, 'autosave', thumbnail);
+      resetEditCount();
+      setLastSaveTime(Date.now());
+      console.log('Autosaved map');
+    }
+  }, [map, shouldAutosave, getCanvasThumbnail, resetEditCount, setLastSaveTime]);
+
+  // Track an edit (for history and autosave)
+  const trackEdit = useCallback(() => {
+    if (!map) return;
+    pushHistory(map);
+    incrementEditCount();
+    checkAutosave();
+  }, [map, pushHistory, incrementEditCount, checkAutosave]);
 
   // Initialize canvas dimensions and renderer
   useEffect(() => {
@@ -49,6 +100,9 @@ const MapCanvas = () => {
     const savedMap = MapPersistence.load();
     if (savedMap) {
       setMap(savedMap);
+      // Initialize history with loaded map
+      clearHistory();
+      pushHistory(savedMap);
       return;
     }
 
@@ -62,7 +116,10 @@ const MapCanvas = () => {
     const newMap = MapGenerator.generate(width, height, mapSeed, pointCount);
     setMap(newMap);
     MapPersistence.save(newMap); // Initial save
-  }, [isInitialized, mapVersion, mapSeed, pointCount, setMap]);
+    // Initialize history with new map
+    clearHistory();
+    pushHistory(newMap);
+  }, [isInitialized, mapVersion, mapSeed, pointCount, setMap, clearHistory, pushHistory]);
 
   // Auto-save map when it changes (debounced would be better but simple for now)
   useEffect(() => {
@@ -200,12 +257,13 @@ const MapCanvas = () => {
       if (activeTool === 'city-placer' || activeTool === 'castle-placer' || activeTool === 'marker-placer') {
         setMap({ ...map });
         MapPersistence.save(map);
+        trackEdit(); // Track for history and autosave
       } else {
         // For continuous tools (Paint), just render canvas for performance
         renderer.render(map, camera, activeLayer, showCapitalStars);
       }
     }
-  }, [getWorldCoords, getCellId, map, activeTool, setMap, renderer, camera, activeLayer, detectElementAtPosition]);
+  }, [getWorldCoords, getCellId, map, activeTool, setMap, renderer, camera, activeLayer, detectElementAtPosition, trackEdit]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const canvas = canvasRef.current;
@@ -261,9 +319,10 @@ const MapCanvas = () => {
     if (isDragging && map && (activeTool === 'height-paint' || activeTool === 'biome-paint')) {
       setMap({ ...map }); // Update global state (Sidebar, etc.)
       MapPersistence.save(map);
+      trackEdit(); // Track for history and autosave
     }
     setIsDragging(false);
-  }, [isDragging, activeTool, map, setMap]);
+  }, [isDragging, activeTool, map, setMap, trackEdit]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -286,7 +345,7 @@ const MapCanvas = () => {
     }
   }, [camera, setCamera]);
 
-  const deleteElement = () => {
+  const deleteElement = useCallback(() => {
     if (!editingElement || !map) return;
     const { type, data } = editingElement;
 
@@ -312,10 +371,11 @@ const MapCanvas = () => {
 
     setMap({ ...map });
     MapPersistence.save(map);
+    trackEdit(); // Track for history and autosave
     setEditingElement(null);
-  };
+  }, [editingElement, map, setMap, trackEdit]);
 
-  const updateElementName = (newName: string) => {
+  const updateElementName = useCallback((newName: string) => {
     if (!editingElement || !map) return;
     const oldName = editingElement.data.name;
     editingElement.data.name = newName;
@@ -332,7 +392,8 @@ const MapCanvas = () => {
     
     setMap({ ...map });
     MapPersistence.save(map);
-  };
+    // Note: We don't track every keystroke as an edit, only significant changes
+  }, [editingElement, map, setMap]);
 
   const { brushSize } = useUIStore();
   const showBrush = activeTool === 'height-paint' || activeTool === 'biome-paint';

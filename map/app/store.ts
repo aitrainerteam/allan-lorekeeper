@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { ToolType } from '../tools/ToolManager';
 import { WorldMap } from '../core/MapState';
+import { SerializedMap, MapPersistence } from '../core/MapPersistence';
+
+const MAX_HISTORY_SIZE = 20;
+const AUTOSAVE_EDIT_THRESHOLD = 5;
+const AUTOSAVE_DEBOUNCE_MS = 30000; // 30 seconds minimum between autosaves
 
 interface UIState {
   activeTool: ToolType;
@@ -41,9 +46,31 @@ interface UIState {
   // Triggers for map updates
   mapVersion: number;
   bumpMapVersion: () => void;
+
+  // Undo/Redo history
+  history: SerializedMap[];
+  historyIndex: number;
+  pushHistory: (map: WorldMap) => void;
+  undo: () => WorldMap | null;
+  redo: () => WorldMap | null;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
+  clearHistory: () => void;
+
+  // Autosave tracking
+  editCount: number;
+  incrementEditCount: () => void;
+  resetEditCount: () => void;
+  lastSaveTime: number;
+  setLastSaveTime: (time: number) => void;
+  shouldAutosave: () => boolean;
+
+  // Load modal state
+  isLoadModalOpen: boolean;
+  setLoadModalOpen: (open: boolean) => void;
 }
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIState>((set, get) => ({
   activeTool: 'select',
   setActiveTool: (t) => {
     console.log('setActiveTool called with:', t);
@@ -88,4 +115,85 @@ export const useUIStore = create<UIState>((set) => ({
 
   mapVersion: 0,
   bumpMapVersion: () => set((state) => ({ mapVersion: state.mapVersion + 1 })),
+
+  // Undo/Redo history
+  history: [],
+  historyIndex: -1,
+  
+  pushHistory: (map: WorldMap) => {
+    const state = get();
+    const serialized = MapPersistence.serialize(map);
+    
+    // If we're not at the end of history, truncate future states
+    let newHistory = state.history.slice(0, state.historyIndex + 1);
+    
+    // Add new state
+    newHistory.push(serialized);
+    
+    // Limit history size
+    if (newHistory.length > MAX_HISTORY_SIZE) {
+      newHistory = newHistory.slice(newHistory.length - MAX_HISTORY_SIZE);
+    }
+    
+    set({
+      history: newHistory,
+      historyIndex: newHistory.length - 1
+    });
+  },
+  
+  undo: () => {
+    const state = get();
+    if (state.historyIndex <= 0) return null;
+    
+    const newIndex = state.historyIndex - 1;
+    const serialized = state.history[newIndex];
+    const map = MapPersistence.deserialize(serialized);
+    
+    set({ historyIndex: newIndex, map });
+    return map;
+  },
+  
+  redo: () => {
+    const state = get();
+    if (state.historyIndex >= state.history.length - 1) return null;
+    
+    const newIndex = state.historyIndex + 1;
+    const serialized = state.history[newIndex];
+    const map = MapPersistence.deserialize(serialized);
+    
+    set({ historyIndex: newIndex, map });
+    return map;
+  },
+  
+  canUndo: () => {
+    const state = get();
+    return state.historyIndex > 0;
+  },
+  
+  canRedo: () => {
+    const state = get();
+    return state.historyIndex < state.history.length - 1;
+  },
+  
+  clearHistory: () => {
+    set({ history: [], historyIndex: -1 });
+  },
+
+  // Autosave tracking
+  editCount: 0,
+  incrementEditCount: () => set((state) => ({ editCount: state.editCount + 1 })),
+  resetEditCount: () => set({ editCount: 0 }),
+  lastSaveTime: 0,
+  setLastSaveTime: (time: number) => set({ lastSaveTime: time }),
+  
+  shouldAutosave: () => {
+    const state = get();
+    const now = Date.now();
+    const timeSinceLastSave = now - state.lastSaveTime;
+    return state.editCount >= AUTOSAVE_EDIT_THRESHOLD && timeSinceLastSave >= AUTOSAVE_DEBOUNCE_MS;
+  },
+
+  // Load modal state
+  isLoadModalOpen: false,
+  setLoadModalOpen: (open: boolean) => set({ isLoadModalOpen: open }),
 }));

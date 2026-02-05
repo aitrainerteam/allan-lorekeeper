@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useUIStore } from '../store';
-import { Layers, Brush, Settings, Download, Plus, Minus, MapPin, Castle as CastleIcon, Map as MapIcon, List, Edit2, Save, X } from 'lucide-react';
+import { Layers, Brush, Settings, Download, Plus, Minus, MapPin, Castle as CastleIcon, Map as MapIcon, List, Edit2, Save, X, Undo2, Redo2, FolderOpen } from 'lucide-react';
 import { MapPersistence } from '../../core/MapPersistence';
 import { BIOMES } from '../../core/TerrainGenerator';
+import LoadMapModal from './LoadMapModal';
 
 const Sidebar = () => {
   const {
@@ -26,11 +27,145 @@ const Sidebar = () => {
     zoomOut,
     bumpMapVersion,
     map,
-    setMap
+    setMap,
+    // Undo/Redo
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    pushHistory,
+    clearHistory,
+    // Autosave
+    resetEditCount,
+    setLastSaveTime,
+    // Load modal
+    isLoadModalOpen,
+    setLoadModalOpen
   } = useUIStore();
   const [activeTab, setActiveTab] = useState('layers');
   const [editingEntity, setEditingEntity] = useState<{ type: 'city' | 'castle' | 'marker' | 'state', id: number } | null>(null);
   const [editForm, setEditForm] = useState<any>({});
+
+  // Get canvas thumbnail for saves (sized for sharp preview in Load Map modal)
+  const getCanvasThumbnail = useCallback(() => {
+    const canvas = document.querySelector('canvas');
+    if (!canvas) return '';
+
+    const targetLongSide = 480; // Match modal preview size so thumbnails aren't upscaled
+    const w = canvas.width;
+    const h = canvas.height;
+    const scale = Math.min(1, targetLongSide / Math.max(w, h));
+    const thumbW = Math.round(w * scale);
+    const thumbH = Math.round(h * scale);
+
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = thumbW;
+    thumbCanvas.height = thumbH;
+    const ctx = thumbCanvas.getContext('2d');
+    if (!ctx) return '';
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(canvas, 0, 0, w, h, 0, 0, thumbW, thumbH);
+    return thumbCanvas.toDataURL('image/png');
+  }, []);
+
+  // Manual save handler
+  const handleManualSave = useCallback(() => {
+    if (!map) return;
+    
+    const thumbnail = getCanvasThumbnail();
+    MapPersistence.saveVersion(map, 'manual', thumbnail);
+    resetEditCount();
+    setLastSaveTime(Date.now());
+  }, [map, getCanvasThumbnail, resetEditCount, setLastSaveTime]);
+
+  // Load map by ID
+  const handleLoadMap = useCallback((id: string) => {
+    const loadedMap = MapPersistence.loadVersion(id);
+    if (loadedMap) {
+      setMap(loadedMap);
+      clearHistory();
+      pushHistory(loadedMap);
+      setLoadModalOpen(false);
+    }
+  }, [setMap, clearHistory, pushHistory, setLoadModalOpen]);
+
+  // Generate new map
+  const handleGenerateNew = useCallback(() => {
+    MapPersistence.clear();
+    clearHistory();
+    bumpMapVersion();
+    setLoadModalOpen(false);
+  }, [clearHistory, bumpMapVersion, setLoadModalOpen]);
+
+  // Undo handler
+  const handleUndo = useCallback(() => {
+    const undoneMap = undo();
+    if (undoneMap) {
+      MapPersistence.save(undoneMap);
+    }
+  }, [undo]);
+
+  // Redo handler
+  const handleRedo = useCallback(() => {
+    const redoneMap = redo();
+    if (redoneMap) {
+      MapPersistence.save(redoneMap);
+    }
+  }, [redo]);
+
+  // Export as PNG
+  const exportAsPNG = useCallback(() => {
+    const canvas = document.querySelector('canvas');
+    if (!canvas || !map) return;
+    
+    const link = document.createElement('a');
+    link.download = `map-${map.seed}-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }, [map]);
+
+  // Export as JSON
+  const exportAsJSON = useCallback(() => {
+    if (!map) return;
+    
+    const serialized = MapPersistence.serialize(map);
+    const blob = new Blob([JSON.stringify(serialized, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.download = `map-${map.seed}-${Date.now()}.json`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }, [map]);
+
+  // Import from JSON
+  const importFromJSON = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const json = JSON.parse(e.target?.result as string);
+          const loadedMap = MapPersistence.deserialize(json);
+          setMap(loadedMap);
+          MapPersistence.save(loadedMap);
+          clearHistory();
+          pushHistory(loadedMap);
+        } catch (err) {
+          console.error('Failed to import map:', err);
+          alert('Failed to import map. Please check the file format.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }, [setMap, clearHistory, pushHistory]);
 
   const startEditing = (type: 'city' | 'castle' | 'marker' | 'state', entity: any) => {
     setEditingEntity({ type, id: entity.id });
@@ -117,6 +252,70 @@ const Sidebar = () => {
       <div className="p-4 border-b border-slate-800 font-bold text-xl flex items-center gap-2">
         <MapIcon className="text-indigo-500" />
         LoreKeeper Map
+      </div>
+
+      {/* Save/Load/Undo/Redo Actions */}
+      <div className="p-3 border-b border-slate-800">
+        <div className="grid grid-cols-4 gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleManualSave();
+            }}
+            className="p-2 rounded border border-slate-700 text-sm flex flex-col items-center justify-center gap-1 hover:bg-slate-800 hover:border-indigo-400"
+            title="Save Map"
+          >
+            <Save size={16} />
+            <span className="text-xs">Save</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setLoadModalOpen(true);
+            }}
+            className="p-2 rounded border border-slate-700 text-sm flex flex-col items-center justify-center gap-1 hover:bg-slate-800 hover:border-indigo-400"
+            title="Load Map"
+          >
+            <FolderOpen size={16} />
+            <span className="text-xs">Load</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleUndo();
+            }}
+            disabled={!canUndo()}
+            className={`p-2 rounded border border-slate-700 text-sm flex flex-col items-center justify-center gap-1 ${
+              canUndo() ? 'hover:bg-slate-800 hover:border-indigo-400' : 'opacity-40 cursor-not-allowed'
+            }`}
+            title="Undo"
+          >
+            <Undo2 size={16} />
+            <span className="text-xs">Undo</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleRedo();
+            }}
+            disabled={!canRedo()}
+            className={`p-2 rounded border border-slate-700 text-sm flex flex-col items-center justify-center gap-1 ${
+              canRedo() ? 'hover:bg-slate-800 hover:border-indigo-400' : 'opacity-40 cursor-not-allowed'
+            }`}
+            title="Redo"
+          >
+            <Redo2 size={16} />
+            <span className="text-xs">Redo</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -315,17 +514,52 @@ const Sidebar = () => {
             {activeLayer === 'political' && map && map.states.length > 0 && (
               <div className="mt-6 border-t border-slate-800 pt-4">
                 <h3 className="text-sm uppercase text-slate-400 font-semibold mb-2">States ({map.states.length})</h3>
-                <div className="space-y-1 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-1 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                   {map.states.map(state => (
-                    <div key={state.id} className="flex items-center gap-3 p-2 rounded hover:bg-slate-800 cursor-default group">
-                      <div
-                        className="w-4 h-4 rounded shadow-sm shrink-0 border border-black/20"
-                        style={{ backgroundColor: state.color }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate text-slate-200">{state.name}</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider">{state.cellCount} regions</div>
-                      </div>
+                    <div key={state.id} className="p-2 rounded hover:bg-slate-800 cursor-default group">
+                      {editingEntity?.type === 'state' && editingEntity.id === state.id ? (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={editForm.name}
+                            onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs"
+                            placeholder="State Name"
+                            autoFocus
+                          />
+                          <div className="flex gap-2 items-center">
+                            <label className="text-[10px] text-slate-400">Color:</label>
+                            <input
+                              type="color"
+                              value={editForm.color}
+                              onChange={e => setEditForm({ ...editForm, color: e.target.value })}
+                              className="w-10 h-6 bg-slate-900 border border-slate-700 rounded cursor-pointer"
+                            />
+                          </div>
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={cancelEditing} className="p-1 hover:bg-slate-700 rounded text-slate-400"><X size={14} /></button>
+                            <button onClick={saveEntity} className="p-1 bg-indigo-600 hover:bg-indigo-500 rounded text-white"><Save size={14} /></button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded shadow-sm shrink-0 border border-black/20"
+                            style={{ backgroundColor: state.color }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate text-slate-200">{state.name}</div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wider">{state.cellCount} regions</div>
+                          </div>
+                          <button
+                            onClick={() => startEditing('state', state)}
+                            className="p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200 shrink-0"
+                            title="Edit State"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -782,22 +1016,62 @@ const Sidebar = () => {
             <h3 className="text-sm uppercase text-slate-400 font-semibold mb-2">Export</h3>
             <div className="space-y-2">
               <button
-                className="w-full px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-left disabled:opacity-50"
-                disabled
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  exportAsPNG();
+                }}
+                disabled={!map}
+                className="w-full px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-left disabled:opacity-50 flex items-center gap-2"
               >
+                <Download size={16} />
                 Export as PNG
               </button>
               <button
-                className="w-full px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-left disabled:opacity-50"
-                disabled
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  exportAsJSON();
+                }}
+                disabled={!map}
+                className="w-full px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-left disabled:opacity-50 flex items-center gap-2"
               >
+                <Download size={16} />
                 Export as JSON
               </button>
-              <span className="text-xs text-slate-500 block">Export functionality coming soon</span>
+              <span className="text-xs text-slate-500 block mt-2">JSON files can be imported later</span>
+            </div>
+
+            <h3 className="text-sm uppercase text-slate-400 font-semibold mb-2 mt-6">Import</h3>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  importFromJSON();
+                }}
+                className="w-full px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-left flex items-center gap-2"
+              >
+                <FolderOpen size={16} />
+                Import from JSON
+              </button>
+              <span className="text-xs text-slate-500 block">Load a previously exported map file</span>
             </div>
           </div>
         )}
       </div>
+
+      {/* Load Map Modal */}
+      {isLoadModalOpen && (
+        <LoadMapModal
+          onClose={() => setLoadModalOpen(false)}
+          onLoad={handleLoadMap}
+          onGenerateNew={handleGenerateNew}
+        />
+      )}
     </div>
   );
 };
