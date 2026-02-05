@@ -1,9 +1,8 @@
 """
-LLM Intent Classification and Action Routing with OpenAI Function Calling.
+Conversational Story Oracle with OpenAI Function Calling.
 
-This module provides intelligent intent detection and action execution using OpenAI's
-function calling capabilities. It replaces hardcoded pattern matching with LLM-driven
-understanding of user requests, supporting multi-action requests and clarification handling.
+This module provides a ChatGPT-like conversational assistant for story consultation.
+It naturally discusses the user's story and can create entities when explicitly requested.
 """
 
 from __future__ import annotations
@@ -12,42 +11,25 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.ai.client import get_openai_client
-from app.ai.oracle import answer_story_question, analyze_novel_for_issues, build_rag_lite_context
+from app.ai.oracle import analyze_novel_for_issues, build_rag_lite_context
 from app.crud.auto_entities import persist_extracted_entities
-from app.models.codex import Character, Concept
-from app.models.common import utcnow
-from app.models.problems import PlotHole
-from app.models.timeline import Event
+from app.models.chat import ChatMessage
 
 
-# Tool definitions for OpenAI function calling
+# Tool definitions - only for explicit entity creation/modification
 TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "answer_question",
-            "description": "Answer a question about the user's story using available context (characters, concepts, events, plot holes, bible sections)",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "question": {"type": "string", "description": "The question to answer"}
-                },
-                "required": ["question"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
             "name": "create_character",
-            "description": "Create a new character in the story database",
+            "description": "Create a new character in the story database. Only use when user explicitly asks to create/add a character.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {"type": "string"},
+                    "name": {"type": "string", "description": "Character name"},
                     "traits": {"type": "string", "description": "Character traits/personality"},
                     "arc": {"type": "string", "description": "Character arc/development"}
                 },
@@ -59,7 +41,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "create_concept",
-            "description": "Create a new concept/rule/magic system in the story",
+            "description": "Create a new concept/rule/magic system. Only use when user explicitly asks to create/add a concept.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -74,7 +56,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "create_event",
-            "description": "Create a new timeline event/scene",
+            "description": "Create a new timeline event/scene. Only use when user explicitly asks to create/add an event.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -91,7 +73,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "create_problem",
-            "description": "Create a plot hole, issue, or problem to track",
+            "description": "Create a plot hole or issue to track. Only use when user explicitly asks to note/track a problem.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -107,55 +89,96 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "analyze_story",
-            "description": "Analyze the entire story for plot holes, inconsistencies, and issues",
+            "description": "Deep analyze the entire story for plot holes and inconsistencies. Only use when user explicitly asks to analyze or find issues.",
             "parameters": {"type": "object", "properties": {}}
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "request_clarification",
-            "description": "Ask the user to clarify their request when intent is unclear",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "message": {"type": "string", "description": "The clarification message"},
-                    "options": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Specific options for the user to choose from"
-                    }
-                },
-                "required": ["message", "options"]
-            }
         }
     }
 ]
 
-# System prompt for the intent router
-ROUTER_SYSTEM_PROMPT = """You are an AI assistant for LoreKeeper, a fiction writing tool.
-Your job is to understand what the user wants and call the appropriate tool(s).
 
-Available actions:
-- Answer questions about their story (characters, plot, timeline, etc.)
-- Create new entities (characters, concepts, events, problems)
-- Analyze the story for issues
+def build_system_prompt(context: Dict[str, Any]) -> str:
+    """Build a system prompt that includes story context."""
+    oracle_instructions = context.get("oracle_instructions", "")
+    
+    # Format context sections
+    context_parts = []
+    
+    if context.get("bible_sections"):
+        bible_text = "\n".join([
+            f"**{s['name']}**: {s['content'][:500]}{'...' if len(s['content']) > 500 else ''}"
+            for s in context["bible_sections"][:5]
+        ])
+        context_parts.append(f"## Story Bible\n{bible_text}")
+    
+    if context.get("characters"):
+        chars = context["characters"][:10]
+        char_text = "\n".join([
+            f"- **{c['name']}**: {c.get('traits', 'No traits')} | Arc: {c.get('arc', 'Unknown')}"
+            for c in chars
+        ])
+        context_parts.append(f"## Characters ({len(context['characters'])} total)\n{char_text}")
+    
+    if context.get("concepts"):
+        concepts = context["concepts"][:8]
+        concept_text = "\n".join([
+            f"- **{c['title']}**: {c.get('description', '')[:200]}"
+            for c in concepts
+        ])
+        context_parts.append(f"## Concepts\n{concept_text}")
+    
+    if context.get("events"):
+        events = context["events"][:10]
+        event_text = "\n".join([
+            f"- **{e['title']}**: {e.get('description', '')[:150]}"
+            for e in events
+        ])
+        context_parts.append(f"## Timeline Events\n{event_text}")
+    
+    if context.get("plot_holes"):
+        holes = [h for h in context["plot_holes"] if h.get("status") != "resolved"][:5]
+        if holes:
+            hole_text = "\n".join([
+                f"- **{h['title']}**: {h.get('description', '')[:100]}"
+                for h in holes
+            ])
+            context_parts.append(f"## Known Issues/Plot Holes\n{hole_text}")
+    
+    story_context = "\n\n".join(context_parts) if context_parts else "No story data yet. The user hasn't added any characters, events, or concepts."
+    
+    system_prompt = f"""You are the Story Oracle for LoreKeeper, an AI writing assistant. You help fiction writers develop and understand their stories.
 
-Guidelines:
-1. If the user asks a question, use answer_question
-2. If the user wants to create something, use the appropriate create_* tool
-3. If the user asks to "find issues" or "analyze", use analyze_story
-4. If the request is ambiguous, use request_clarification with specific options
-5. You can call MULTIPLE tools if the request requires it
+## Your Role
+- Be a knowledgeable, helpful creative partner who understands the user's story deeply
+- Answer questions naturally and conversationally about characters, plot, timeline, world-building
+- Offer insights, suggestions, and help brainstorm when asked
+- Be encouraging but honest about potential issues
 
-When uncertain, ALWAYS use request_clarification rather than guessing.
-Include 2-4 specific, actionable options based on what you think the user might want.
-"""
+## User's Story Context
+{story_context}
+
+## Custom Instructions from Author
+{oracle_instructions if oracle_instructions else "None provided."}
+
+## Guidelines
+1. **Be conversational** - respond naturally like ChatGPT, not like a rigid assistant
+2. **Use your knowledge** - draw from the story context above to give informed answers
+3. **Don't ask for clarification** unless truly necessary - make reasonable assumptions
+4. **Only use tools** when the user EXPLICITLY asks to create/add something or analyze the story
+5. **For questions** - just answer them directly using the context, no tool needed
+6. **Be concise** but thorough - don't pad responses unnecessarily
+7. **Reference specifics** - mention character names, events, concepts when relevant
+
+## Tool Usage
+- ONLY call create_* tools when user says things like "create", "add", "make a new"
+- ONLY call analyze_story when user says "analyze", "find issues", "check for problems"  
+- For regular questions and discussion, just respond normally WITHOUT tools"""
+    
+    return system_prompt
 
 
 @dataclass
 class RouterResult:
-    """Result from the intent router containing response text and metadata."""
+    """Result from the Oracle containing response text and metadata."""
     response_text: str
     entity_summary: Dict[str, Any] | None = None
     is_clarification: bool = False
@@ -169,88 +192,81 @@ def route_user_message(
     model: str = "gpt-4o-mini"
 ) -> RouterResult:
     """
-    Routes user message to appropriate action(s) using LLM tool calling.
-    Returns structured result with tool calls and any generated response.
-
-    Args:
-        session: Database session for entity operations
-        message: The user's input message
-        conversation_id: Conversation identifier for context
-        model: OpenAI model to use
-
-    Returns:
-        RouterResult: Structured result with response text and metadata
+    Process user message with conversational Oracle.
+    
+    This function creates a ChatGPT-like experience - naturally conversational
+    with the ability to create entities when explicitly requested.
     """
     try:
         client = get_openai_client()
-    except Exception:
-        # Fallback to heuristic approach if OpenAI is not available
-        return _fallback_routing(session, message)
+    except Exception as e:
+        return RouterResult(
+            response_text=f"AI service unavailable: {str(e)}",
+            has_errors=True
+        )
 
-    # Build context for the LLM to understand available story elements
+    # Build story context
     context = build_rag_lite_context(session, question=message)
+    system_prompt = build_system_prompt(context)
+    
+    # Get recent conversation history for context
+    recent_messages = session.exec(
+        select(ChatMessage)
+        .where(ChatMessage.conversation_id == conversation_id)
+        .order_by(ChatMessage.created_at.desc())
+        .limit(10)
+    ).all()
+    
+    # Build message history (oldest first)
+    messages = [{"role": "system", "content": system_prompt}]
+    for msg in reversed(recent_messages):
+        messages.append({"role": msg.role, "content": msg.content})
+    
+    # Add current message
+    messages.append({"role": "user", "content": message})
 
     try:
         response = client.chat.completions.create(
             model=model,
-            messages=[
-                {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
-                {"role": "user", "content": message}
-            ],
+            messages=messages,
             tools=TOOLS,
-            tool_choice="auto"  # Let LLM decide
+            tool_choice="auto",  # Let model decide - usually won't need tools
+            temperature=0.7,
+        )
+        
+        response_message = response.choices[0].message
+        
+        # Check if we have tool calls
+        if response_message.tool_calls:
+            return execute_tool_calls(session, response_message.tool_calls, context)
+        
+        # Normal conversational response
+        return RouterResult(
+            response_text=response_message.content or "I'm not sure how to respond to that."
         )
 
-        # Process tool calls and execute handlers
-        return execute_tool_calls(session, response, context, conversation_id, message)
-
     except Exception as e:
-        # Fallback on API errors
-        return _fallback_routing(session, message, error=str(e))
+        return RouterResult(
+            response_text=f"Error processing your message: {str(e)}",
+            has_errors=True
+        )
 
 
 def execute_tool_calls(
     session: Session,
-    response: Any,
-    context: Dict[str, Any],
-    conversation_id: str,
-    original_message: str
+    tool_calls: List[Any],
+    context: Dict[str, Any]
 ) -> RouterResult:
-    """
-    Execute tool calls from the LLM response and return formatted result.
-
-    Args:
-        session: Database session
-        response: OpenAI API response with tool calls
-        context: Story context dictionary
-        conversation_id: Conversation identifier
-        original_message: Original user message
-
-    Returns:
-        RouterResult: Execution results
-    """
-    tool_calls = response.choices[0].message.tool_calls
-    if not tool_calls:
-        # No tool calls - this shouldn't happen with our prompt, but handle gracefully
-        return RouterResult(
-            response_text="I'm not sure what you'd like me to do. Could you clarify your request?",
-            is_clarification=True
-        )
-
+    """Execute tool calls and return combined results."""
     results = []
-    entity_summary = None
-    has_clarification = False
     has_errors = False
 
-    # Execute each tool call
     for tool_call in tool_calls:
         try:
             function_name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments)
 
-            if function_name == "answer_question":
-                result = handle_answer_question(session, arguments, context, conversation_id)
-            elif function_name == "create_character":
+            if function_name == "create_character":
                 result = handle_create_character(session, arguments)
             elif function_name == "create_concept":
                 result = handle_create_concept(session, arguments)
@@ -260,65 +276,28 @@ def execute_tool_calls(
                 result = handle_create_problem(session, arguments)
             elif function_name == "analyze_story":
                 result = handle_analyze_story(session)
-            elif function_name == "request_clarification":
-                result = handle_request_clarification(arguments)
-                has_clarification = True
             else:
-                result = f"Unknown function: {function_name}"
+                result = f"Unknown action: {function_name}"
                 has_errors = True
 
             results.append(result)
 
         except Exception as e:
-            results.append(f"Error executing {tool_call.function.name}: {str(e)}")
+            results.append(f"Error: {str(e)}")
             has_errors = True
 
-    # Combine results
-    response_text = "\n\n".join(results)
-
-    # If we created entities, we need to extract the entity summary
-    # This is a bit tricky since multiple tool calls might create entities
-    if any("create_" in call.function.name for call in tool_calls):
-        # We'll need to collect all created entities and format them
-        # For now, just mark that we have entity changes
-        pass
-
     return RouterResult(
-        response_text=response_text,
-        entity_summary=entity_summary,
-        is_clarification=has_clarification,
+        response_text="\n\n".join(results),
         has_errors=has_errors
     )
 
 
 # Tool handlers
-def handle_answer_question(
-    session: Session,
-    arguments: Dict[str, Any],
-    context: Dict[str, Any],
-    conversation_id: str
-) -> str:
-    """Handle answer_question tool call."""
-    question = arguments.get("question", "")
-    if not question:
-        return "I need a question to answer."
-
-    try:
-        return answer_story_question(
-            session=session,
-            conversation_id=conversation_id,
-            question=question,
-            context=context
-        )
-    except Exception as e:
-        return f"Error answering question: {str(e)}"
-
-
 def handle_create_character(session: Session, arguments: Dict[str, Any]) -> str:
-    """Handle create_character tool call."""
+    """Create a new character."""
     name = arguments.get("name", "").strip()
     if not name:
-        return "Character name is required."
+        return "I need a name to create a character."
 
     traits = arguments.get("traits", "")
     arc = arguments.get("arc", "")
@@ -326,50 +305,54 @@ def handle_create_character(session: Session, arguments: Dict[str, Any]) -> str:
     try:
         extracted = {
             "characters": [{"name": name, "traits": traits, "arc": arc}],
-            "concepts": [],
-            "events": [],
-            "plot_holes": []
+            "concepts": [], "events": [], "plot_holes": []
         }
         summary = persist_extracted_entities(session, extracted)
 
         if summary["created"]["characters"]:
-            return f"Created character {name}."
+            response = f"✓ Created character **{name}**"
+            if traits:
+                response += f"\n  - Traits: {traits}"
+            if arc:
+                response += f"\n  - Arc: {arc}"
+            return response
         else:
-            return f"Character {name} already exists (may have been updated)."
+            return f"Character **{name}** already exists. I've updated their details if you provided new information."
     except Exception as e:
-        return f"Error creating character: {str(e)}"
+        return f"Couldn't create character: {str(e)}"
 
 
 def handle_create_concept(session: Session, arguments: Dict[str, Any]) -> str:
-    """Handle create_concept tool call."""
+    """Create a new concept."""
     title = arguments.get("title", "").strip()
     if not title:
-        return "Concept title is required."
+        return "I need a title to create a concept."
 
     description = arguments.get("description", "")
 
     try:
         extracted = {
-            "characters": [],
-            "concepts": [{"title": title, "description": description}],
-            "events": [],
-            "plot_holes": []
+            "characters": [], "events": [], "plot_holes": [],
+            "concepts": [{"title": title, "description": description}]
         }
         summary = persist_extracted_entities(session, extracted)
 
         if summary["created"]["concepts"]:
-            return f"Created concept '{title}'."
+            response = f"✓ Created concept **{title}**"
+            if description:
+                response += f"\n  {description[:200]}"
+            return response
         else:
-            return f"Concept '{title}' already exists (may have been updated)."
+            return f"Concept **{title}** already exists. I've updated it if you provided new details."
     except Exception as e:
-        return f"Error creating concept: {str(e)}"
+        return f"Couldn't create concept: {str(e)}"
 
 
 def handle_create_event(session: Session, arguments: Dict[str, Any]) -> str:
-    """Handle create_event tool call."""
+    """Create a new timeline event."""
     title = arguments.get("title", "").strip()
     if not title:
-        return "Event title is required."
+        return "I need a title to create an event."
 
     description = arguments.get("description", "")
     act = arguments.get("act")
@@ -377,131 +360,65 @@ def handle_create_event(session: Session, arguments: Dict[str, Any]) -> str:
 
     try:
         extracted = {
-            "characters": [],
-            "concepts": [],
-            "events": [{"title": title, "description": description, "act": act, "beat": beat, "approx_order": 0}],
-            "plot_holes": []
+            "characters": [], "concepts": [], "plot_holes": [],
+            "events": [{"title": title, "description": description, "act": act, "beat": beat, "approx_order": 0}]
         }
         summary = persist_extracted_entities(session, extracted)
 
         if summary["created"]["events"]:
-            return f"Created event '{title}'."
+            response = f"✓ Created event **{title}**"
+            if act:
+                response += f" ({act})"
+            if description:
+                response += f"\n  {description[:200]}"
+            return response
         else:
-            return f"Event '{title}' already exists (may have been updated)."
+            return f"Event **{title}** already exists. I've updated it if you provided new details."
     except Exception as e:
-        return f"Error creating event: {str(e)}"
+        return f"Couldn't create event: {str(e)}"
 
 
 def handle_create_problem(session: Session, arguments: Dict[str, Any]) -> str:
-    """Handle create_problem tool call."""
+    """Create a plot hole or issue to track."""
     title = arguments.get("title", "").strip()
     if not title:
-        return "Problem title is required."
+        return "I need a title to create a problem entry."
 
     description = arguments.get("description", "")
     kind = arguments.get("kind", "plot_hole")
 
     try:
         extracted = {
-            "characters": [],
-            "concepts": [],
-            "events": [],
+            "characters": [], "concepts": [], "events": [],
             "plot_holes": [{"title": title, "description": description, "kind": kind}]
         }
         summary = persist_extracted_entities(session, extracted)
 
         if summary["created"]["plot_holes"]:
-            return f"Created problem '{title}'."
+            return f"✓ Noted issue: **{title}**\n  I've added this to your plot holes tracker."
         else:
-            return f"Problem '{title}' already exists (may have been updated)."
+            return f"Issue **{title}** is already being tracked."
     except Exception as e:
-        return f"Error creating problem: {str(e)}"
+        return f"Couldn't create problem entry: {str(e)}"
 
 
 def handle_analyze_story(session: Session) -> str:
-    """Handle analyze_story tool call."""
+    """Analyze the story for issues."""
     try:
         issues = analyze_novel_for_issues(session)
         if not issues:
-            return "I analyzed your story and didn't find any obvious issues. Your narrative appears consistent!"
+            return "I've analyzed your story and everything looks consistent! No obvious plot holes or issues found."
 
-        lines = [f"I found {len(issues)} potential issue(s) in your story:"]
+        lines = [f"I found **{len(issues)} potential issue(s)** in your story:\n"]
         for i, issue in enumerate(issues, 1):
-            title = issue.get("title", "Untitled Issue")
+            title = issue.get("title", "Untitled")
             description = issue.get("description", "")
             kind = issue.get("kind", "plot_hole").replace("_", " ").title()
-            lines.append(f"\n**{i}. {title}** ({kind})")
+            lines.append(f"**{i}. {title}** _{kind}_")
             if description:
-                lines.append(f"   {description}")
+                lines.append(f"   {description}\n")
 
-        lines.append("\nI've added these as plot holes to your database so you can track and resolve them.")
+        lines.append("\n_These have been added to your plot holes tracker._")
         return "\n".join(lines)
     except Exception as e:
-        return f"Error analyzing story: {str(e)}"
-
-
-def handle_request_clarification(arguments: Dict[str, Any]) -> str:
-    """Handle request_clarification tool call."""
-    message = arguments.get("message", "I need clarification on your request.")
-    options = arguments.get("options", [])
-
-    lines = [message, ""]
-    for i, option in enumerate(options, 1):
-        lines.append(f"{i}. {option}")
-
-    return "\n".join(lines)
-
-
-def _fallback_routing(session: Session, message: str, error: str | None = None) -> RouterResult:
-    """Fallback routing when OpenAI is not available."""
-    # Simple heuristic fallback
-    lower_message = message.lower().strip()
-
-    if error:
-        error_msg = f"(AI service unavailable: {error}). "
-    else:
-        error_msg = "(AI service unavailable). "
-
-    # Basic question detection
-    if ("?" in message or
-        any(lower_message.startswith(word) for word in ["what", "who", "when", "where", "why", "how", "can ", "could ", "should ", "does ", "do ", "did ", "is ", "are ", "will ", "would "])):
-        return RouterResult(
-            response_text=error_msg + "For questions, please try asking me when the AI service is available.",
-            has_errors=True
-        )
-
-    # Basic creation detection
-    if any(keyword in lower_message for keyword in ["create a", "create an", "add a", "add an", "new character", "new concept", "new event", "new plot hole", "new issue", "new problem"]):
-        # Try to extract entities using the existing heuristic method
-        try:
-            from app.ai.entity_extractor import extract_entities_from_text
-            extracted = extract_entities_from_text(session, text=message)
-            if extracted and (extracted.get("characters") or extracted.get("concepts") or extracted.get("events") or extracted.get("plot_holes")):
-                summary = persist_extracted_entities(session, extracted)
-                # Format summary similar to existing chat.py logic
-                created = summary.get("created", {})
-                updated = summary.get("updated", {})
-
-                lines = []
-                if created.get("characters") or updated.get("characters"):
-                    lines.append("Characters: " + ", ".join(created.get("characters", []) + updated.get("characters", [])))
-                if created.get("concepts") or updated.get("concepts"):
-                    lines.append("Concepts: " + ", ".join(created.get("concepts", []) + updated.get("concepts", [])))
-                if created.get("events") or updated.get("events"):
-                    lines.append("Events: " + ", ".join(created.get("events", []) + updated.get("events", [])))
-                if created.get("plot_holes") or updated.get("plot_holes"):
-                    lines.append("Plot Holes: " + ", ".join(created.get("plot_holes", []) + updated.get("plot_holes", [])))
-
-                response = "Created/updated entities:\n" + "\n".join(lines) if lines else "No entities were created or updated."
-                return RouterResult(response_text=response)
-        except Exception as e:
-            return RouterResult(
-                response_text=error_msg + f"Could not process entity creation: {str(e)}",
-                has_errors=True
-            )
-
-    return RouterResult(
-        response_text=error_msg + "I'm not sure what you'd like me to do. Try being more specific, like 'create a character named X' or ask a question about your story.",
-        is_clarification=True,
-        has_errors=True
-    )
+        return f"Couldn't analyze story: {str(e)}"

@@ -271,10 +271,19 @@ def oracle_clear(
     request: Request,
     session: Session = Depends(get_session),
 ):
+    from app.models.oracle import OracleThread
+    
     cid = _get_conversation_id(request)
+    # Clear chat messages
     msgs = session.exec(select(ChatMessage).where(ChatMessage.conversation_id == cid)).all()
     for m in msgs:
         session.delete(m)
+    # Also clear the oracle thread so it gets recreated fresh
+    oracle_thread_record = session.exec(
+        select(OracleThread).where(OracleThread.conversation_id == cid)
+    ).first()
+    if oracle_thread_record:
+        session.delete(oracle_thread_record)
     session.commit()
     return oracle_thread(request, session=session)
 

@@ -6,20 +6,57 @@
     <title>{{ title or "LoreKeeper" }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <style>
+      /* Mobile sidebar overlay */
+      #sidebar-overlay {
+        transition: opacity 150ms ease-out;
+      }
+      #sidebar-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      /* Sidebar slide transition */
+      #sidebar {
+        transition: transform 200ms ease-out;
+      }
+      #sidebar.sidebar-hidden {
+        transform: translateX(-100%);
+      }
+      @media (min-width: 768px) {
+        #sidebar.sidebar-hidden {
+          transform: translateX(0);
+        }
+      }
+    </style>
   </head>
   <body class="bg-slate-950 text-slate-100">
     <div class="min-h-screen flex">
-      <aside class="w-64 border-r border-slate-800 p-4">
+      <!-- Mobile sidebar overlay -->
+      <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black/50 z-30 md:hidden" onclick="lkToggleSidebar()"></div>
+      
+      <!-- Mobile header with hamburger -->
+      <div class="fixed top-0 left-0 right-0 h-14 bg-slate-950 border-b border-slate-800 flex items-center px-4 z-20 md:hidden">
+        <button onclick="lkToggleSidebar()" class="p-2 -ml-2 rounded hover:bg-slate-900 transition-colors" aria-label="Toggle menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <span class="ml-3 font-semibold">LoreKeeper</span>
+      </div>
+
+      <!-- Sidebar -->
+      <aside id="sidebar" class="sidebar-hidden md:translate-x-0 fixed md:static inset-y-0 left-0 w-64 border-r border-slate-800 p-4 bg-slate-950 z-40 md:z-auto">
         <div class="text-xl font-semibold tracking-tight">LoreKeeper</div>
         <div class="mt-1 text-xs text-slate-400">Local-first story workspace</div>
 
         <nav class="mt-6 space-y-1">
-          <a href="/bible" class="block rounded px-3 py-2 hover:bg-slate-900">Bible Editor</a>
-          <a href="/codex/characters" class="block rounded px-3 py-2 hover:bg-slate-900">Codex</a>
-          <a href="/timeline" class="block rounded px-3 py-2 hover:bg-slate-900">Timeline</a>
-          <a href="/problems" class="block rounded px-3 py-2 hover:bg-slate-900">Problems</a>
-          <a href="/chat" class="block rounded px-3 py-2 hover:bg-slate-900">Story Oracle</a>
-          <a href="/map" class="block rounded px-3 py-2 hover:bg-slate-900">World Map</a>
+          {% set current_path = request.url.path %}
+          <a href="/bible" class="block rounded px-3 py-2 transition-colors {% if current_path.startswith('/bible') %}bg-slate-800 text-white border-l-2 border-indigo-500 -ml-0.5 pl-2.5{% else %}hover:bg-slate-900{% endif %}">Bible Editor</a>
+          <a href="/codex/characters" class="block rounded px-3 py-2 transition-colors {% if current_path.startswith('/codex') %}bg-slate-800 text-white border-l-2 border-indigo-500 -ml-0.5 pl-2.5{% else %}hover:bg-slate-900{% endif %}">Codex</a>
+          <a href="/timeline" class="block rounded px-3 py-2 transition-colors {% if current_path.startswith('/timeline') %}bg-slate-800 text-white border-l-2 border-indigo-500 -ml-0.5 pl-2.5{% else %}hover:bg-slate-900{% endif %}">Timeline</a>
+          <a href="/problems" class="block rounded px-3 py-2 transition-colors {% if current_path.startswith('/problems') %}bg-slate-800 text-white border-l-2 border-indigo-500 -ml-0.5 pl-2.5{% else %}hover:bg-slate-900{% endif %}">Problems</a>
+          <a href="/chat" class="block rounded px-3 py-2 transition-colors {% if current_path.startswith('/chat') %}bg-slate-800 text-white border-l-2 border-indigo-500 -ml-0.5 pl-2.5{% else %}hover:bg-slate-900{% endif %}">Story Oracle</a>
+          <a href="/map" class="block rounded px-3 py-2 transition-colors {% if current_path.startswith('/map') %}bg-slate-800 text-white border-l-2 border-indigo-500 -ml-0.5 pl-2.5{% else %}hover:bg-slate-900{% endif %}">World Map</a>
         </nav>
 
         <div class="mt-8 text-xs text-slate-500">
@@ -27,12 +64,22 @@
         </div>
       </aside>
 
-      <main class="flex-1 p-6">
+      <!-- Main content -->
+      <main class="flex-1 p-6 pt-20 md:pt-6">
         <div class="max-w-5xl">
           {% block content %}{% endblock %}
         </div>
       </main>
     </div>
+    
+    <script>
+      function lkToggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        sidebar.classList.toggle('sidebar-hidden');
+        overlay.classList.toggle('hidden');
+      }
+    </script>
     <script>
       function lkPositionTimelinePoints(root) {
         const scope = root || document;

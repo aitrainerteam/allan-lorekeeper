@@ -1,8 +1,14 @@
 {% if concepts|length == 0 %}
-  <div class="text-sm text-slate-400">No concepts match your filters yet.</div>
+  <div class="flex flex-col items-center justify-center py-12 text-center">
+    <svg class="h-12 w-12 text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+    </svg>
+    <p class="text-sm text-slate-400">No concepts match your filters yet.</p>
+    <p class="text-xs text-slate-500 mt-1">Try adjusting your filters or add a new concept above.</p>
+  </div>
 {% else %}
-  <div class="overflow-hidden rounded border border-slate-800">
-    <table class="w-full text-sm">
+  <div class="overflow-x-auto rounded border border-slate-800">
+    <table class="w-full text-sm min-w-[640px]">
       <thead class="bg-slate-950">
         <tr class="text-left text-slate-300">
           <th class="px-3 py-2">Title</th>

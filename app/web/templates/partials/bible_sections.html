@@ -1,7 +1,7 @@
 {% if sections %}
   <div class="grid gap-4">
     {% for section in sections %}
-      <div class="rounded border border-slate-800 bg-slate-900/40 p-4">
+      <div class="rounded-lg bg-slate-900/50 p-4">
         <div class="flex items-start justify-between">
           <div class="flex-1">
             <h3 class="text-lg font-medium text-slate-200">{{ section.display_name }}</h3>
@@ -23,7 +23,7 @@
     {% endfor %}
   </div>
 {% else %}
-  <div class="rounded border border-slate-800 bg-slate-900/40 p-8 text-center">
+  <div class="rounded-lg bg-slate-900/50 p-8 text-center">
     <h3 class="text-lg font-medium text-slate-200">No Bible Sections Yet</h3>
     <p class="mt-2 text-slate-400">Import a document to get started with incremental editing.</p>
 
@@ -36,7 +36,7 @@
         <textarea
           name="text_content"
           placeholder="Paste your novel bible text here, or use the Import Document button above..."
-          class="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          class="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm"
           rows="10"
           required
         ></textarea>

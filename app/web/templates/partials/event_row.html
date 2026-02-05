@@ -36,7 +36,11 @@
         {% endif %}
 
         <!-- Status -->
-        <span class="text-xs text-slate-400">{{ e.status }}</span>
+        <span class="rounded-full px-2 py-0.5 text-xs font-medium
+          {% if e.status == 'draft' %}bg-slate-700 text-slate-300
+          {% elif e.status == 'active' %}bg-blue-500/20 text-blue-300
+          {% elif e.status == 'done' %}bg-green-500/20 text-green-300
+          {% else %}bg-slate-700 text-slate-300{% endif %}">{{ e.status }}</span>
 
         <!-- Importance -->
         <span class="text-xs text-slate-400">★{{ e.importance }}</span>
@@ -82,9 +86,9 @@
     {% endif %}
 
     <!-- Action buttons -->
-    <div class="mt-4 flex items-center justify-end gap-2">
+    <div class="mt-4 flex items-center justify-end gap-3">
       <button
-        class="rounded border border-slate-700 px-3 py-1 text-sm text-slate-200 hover:bg-slate-900 transition-colors"
+        class="rounded border border-slate-700 bg-slate-800 px-3 py-1 text-sm text-slate-100 hover:bg-slate-700 transition-colors"
         hx-get="/timeline/events/{{ e.id }}/edit"
         hx-target="#event-row-{{ e.id }}"
         hx-swap="outerHTML"
@@ -92,15 +96,15 @@
         Edit
       </button>
       <button
-        class="rounded border border-slate-700 px-3 py-1 text-sm text-slate-200 hover:bg-slate-900 transition-colors"
+        class="px-2 py-1 text-sm text-slate-400 hover:text-slate-200 transition-colors"
         hx-post="/timeline/events/{{ e.id }}/toggle_incomplete"
         hx-target="#event-table"
         hx-swap="innerHTML"
       >
-        Toggle Incomplete
+        Toggle
       </button>
       <button
-        class="rounded border border-red-700 px-3 py-1 text-sm text-red-200 hover:bg-red-900/50 transition-colors"
+        class="px-2 py-1 text-sm text-slate-400 hover:text-red-400 transition-colors"
         hx-post="/timeline/events/{{ e.id }}/delete"
         hx-target="#event-table"
         hx-swap="innerHTML"

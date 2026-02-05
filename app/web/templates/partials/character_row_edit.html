@@ -7,35 +7,35 @@
       hx-swap="outerHTML"
     >
       <label class="block">
-        <div class="text-xs text-slate-400">Name</div>
-        <input name="name" required value="{{ c.name }}" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+        <div class="text-sm text-slate-300">Name</div>
+        <input name="name" required value="{{ c.name }}" class="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm" />
       </label>
       <label class="block">
-        <div class="text-xs text-slate-400">Tags (comma-separated)</div>
-        <input name="tags" value="{{ tags_csv }}" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+        <div class="text-sm text-slate-300">Tags (comma-separated)</div>
+        <input name="tags" value="{{ tags_csv }}" class="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm" />
       </label>
 
       <label class="block sm:col-span-2">
-        <div class="text-xs text-slate-400">Traits</div>
-        <textarea name="traits" rows="2" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">{{ c.traits }}</textarea>
+        <div class="text-sm text-slate-300">Traits</div>
+        <textarea name="traits" rows="2" class="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm">{{ c.traits }}</textarea>
       </label>
       <label class="block sm:col-span-2">
-        <div class="text-xs text-slate-400">Arc</div>
-        <textarea name="arc" rows="2" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">{{ c.arc }}</textarea>
+        <div class="text-sm text-slate-300">Arc</div>
+        <textarea name="arc" rows="2" class="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm">{{ c.arc }}</textarea>
       </label>
 
       <div class="grid grid-cols-2 gap-3">
         <label class="block">
-          <div class="text-xs text-slate-400">Status</div>
-          <select name="status" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+          <div class="text-sm text-slate-300">Status</div>
+          <select name="status" class="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm">
             <option value="draft" {% if c.status == "draft" %}selected{% endif %}>draft</option>
             <option value="active" {% if c.status == "active" %}selected{% endif %}>active</option>
             <option value="done" {% if c.status == "done" %}selected{% endif %}>done</option>
           </select>
         </label>
         <label class="block">
-          <div class="text-xs text-slate-400">Importance</div>
-          <select name="importance" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+          <div class="text-sm text-slate-300">Importance</div>
+          <select name="importance" class="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm">
             {% for i in [1,2,3,4,5] %}
               <option value="{{ i }}" {% if c.importance == i %}selected{% endif %}>{{ i }}</option>
             {% endfor %}

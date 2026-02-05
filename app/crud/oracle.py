@@ -71,13 +71,10 @@ def get_or_create_oracle_assistant(session: Session, instructions: str, model: s
         raise RuntimeError(f"Failed to create oracle assistant: {e}")
 
 
-def get_oracle_thread(session: Session, conversation_id: str, assistant_id: str) -> OracleThread | None:
+def get_oracle_thread(session: Session, conversation_id: str) -> OracleThread | None:
     """Get an existing thread for a conversation."""
     return session.exec(
-        select(OracleThread).where(
-            OracleThread.conversation_id == conversation_id,
-            OracleThread.assistant_id == assistant_id,
-        )
+        select(OracleThread).where(OracleThread.conversation_id == conversation_id)
     ).first()
 
 
@@ -100,9 +97,19 @@ def create_oracle_thread(session: Session, conversation_id: str, assistant_id: s
 
 
 def get_or_create_oracle_thread(session: Session, conversation_id: str, assistant_id: str) -> OracleThread:
-    """Get or create a thread for a conversation."""
-    thread = get_oracle_thread(session, conversation_id, assistant_id)
+    """Get or create a thread for a conversation.
+    
+    If a thread exists but has a different assistant_id, update it to use the new assistant.
+    """
+    thread = get_oracle_thread(session, conversation_id)
     if thread:
+        # Update assistant_id if it changed
+        if thread.assistant_id != assistant_id:
+            thread.assistant_id = assistant_id
+            thread.updated_at = utcnow()
+            session.add(thread)
+            session.commit()
+            session.refresh(thread)
         return thread
     return create_oracle_thread(session, conversation_id, assistant_id)
 

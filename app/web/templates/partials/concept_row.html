@@ -10,7 +10,13 @@
       </details>
     {% endif %}
   </td>
-  <td class="px-3 py-2 text-slate-300">{{ c.status }}</td>
+  <td class="px-3 py-2">
+    <span class="rounded-full px-2 py-0.5 text-xs font-medium
+      {% if c.status == 'draft' %}bg-slate-700 text-slate-300
+      {% elif c.status == 'active' %}bg-blue-500/20 text-blue-300
+      {% elif c.status == 'done' %}bg-green-500/20 text-green-300
+      {% else %}bg-slate-700 text-slate-300{% endif %}">{{ c.status }}</span>
+  </td>
   <td class="px-3 py-2 text-slate-300">{{ c.importance }}</td>
   <td class="px-3 py-2 text-slate-300">
     {% if tags|length == 0 %}
@@ -28,29 +34,29 @@
   </td>
   <td class="px-3 py-2 text-right whitespace-nowrap">
     <button
-      class="rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
+      class="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 transition-colors"
       hx-get="/codex/concepts/{{ c.id }}/edit"
       hx-target="#concept-row-{{ c.id }}"
       hx-swap="outerHTML"
     >
-      edit
+      Edit
     </button>
     <button
-      class="ml-2 rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
+      class="ml-2 px-2 py-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
       hx-post="/codex/concepts/{{ c.id }}/toggle_incomplete"
       hx-target="#concept-table"
       hx-swap="innerHTML"
     >
-      toggle incomplete
+      Toggle
     </button>
     <button
-      class="ml-2 rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900"
+      class="ml-2 px-2 py-1 text-xs text-slate-400 hover:text-red-400 transition-colors"
       hx-post="/codex/concepts/{{ c.id }}/delete"
       hx-target="#concept-table"
       hx-swap="innerHTML"
       hx-confirm="Delete {{ c.title }}?"
     >
-      delete
+      Delete
     </button>
   </td>
 </tr>
