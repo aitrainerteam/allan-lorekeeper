@@ -6,7 +6,7 @@
       <h1 class="text-2xl font-semibold tracking-tight">Bible Editor</h1>
       <p class="mt-2 text-slate-300">Edit your novel bible section by section with AI assistance. Maintains full context for consistency.</p>
     </div>
-    <div class="flex gap-2">
+    <div class="flex items-center gap-2">
       <form
         hx-post="/bible/import"
         hx-target="#bible-sections"
@@ -22,7 +22,7 @@
         />
         <label
           for="file-upload"
-          class="cursor-pointer rounded border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm hover:bg-slate-900 transition-colors"
+          class="inline-flex items-center cursor-pointer rounded border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm hover:bg-slate-900 transition-colors"
         >
           Import Document
         </label>

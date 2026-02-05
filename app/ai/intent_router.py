@@ -20,18 +20,19 @@ from app.models.chat import ChatMessage
 
 
 # Tool definitions - only for explicit entity creation/modification
+# IMPORTANT: Tools should only capture EXACTLY what the user provides, no embellishment
 TOOLS = [
     {
         "type": "function",
         "function": {
             "name": "create_character",
-            "description": "Create a new character in the story database. Only use when user explicitly asks to create/add a character.",
+            "description": "Create a new character. ONLY include information the user EXPLICITLY stated. Do NOT invent or embellish traits, arcs, or any details.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {"type": "string", "description": "Character name"},
-                    "traits": {"type": "string", "description": "Character traits/personality"},
-                    "arc": {"type": "string", "description": "Character arc/development"}
+                    "name": {"type": "string", "description": "Character name - exactly as user stated"},
+                    "traits": {"type": "string", "description": "ONLY traits/details the user explicitly mentioned (age, species, occupation, etc). Leave empty if not provided."},
+                    "arc": {"type": "string", "description": "ONLY arc details the user explicitly mentioned. Leave empty if not provided."}
                 },
                 "required": ["name"]
             }
@@ -41,12 +42,12 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "create_concept",
-            "description": "Create a new concept/rule/magic system. Only use when user explicitly asks to create/add a concept.",
+            "description": "Create a new concept/rule/magic system. ONLY include information the user EXPLICITLY stated. Do NOT invent details.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "title": {"type": "string"},
-                    "description": {"type": "string"}
+                    "title": {"type": "string", "description": "Concept title - exactly as user stated"},
+                    "description": {"type": "string", "description": "ONLY description the user explicitly provided. Leave empty if not provided."}
                 },
                 "required": ["title"]
             }
@@ -56,14 +57,14 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "create_event",
-            "description": "Create a new timeline event/scene. Only use when user explicitly asks to create/add an event.",
+            "description": "Create a new timeline event/scene. ONLY include information the user EXPLICITLY stated. Do NOT invent details.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "title": {"type": "string"},
-                    "description": {"type": "string"},
-                    "act": {"type": "string", "enum": ["ACT 1", "ACT 2", "ACT 3"]},
-                    "beat": {"type": "string"}
+                    "title": {"type": "string", "description": "Event title - exactly as user stated"},
+                    "description": {"type": "string", "description": "ONLY description the user explicitly provided. Leave empty if not provided."},
+                    "act": {"type": "string", "enum": ["ACT 1", "ACT 2", "ACT 3"], "description": "Only if user specified"},
+                    "beat": {"type": "string", "description": "Only if user specified"}
                 },
                 "required": ["title"]
             }
@@ -73,12 +74,12 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "create_problem",
-            "description": "Create a plot hole or issue to track. Only use when user explicitly asks to note/track a problem.",
+            "description": "Create a plot hole or issue to track. ONLY include information the user EXPLICITLY stated.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "title": {"type": "string"},
-                    "description": {"type": "string"},
+                    "title": {"type": "string", "description": "Problem title - exactly as user stated"},
+                    "description": {"type": "string", "description": "ONLY description the user explicitly provided. Leave empty if not provided."},
                     "kind": {"type": "string", "enum": ["plot_hole", "continuity", "character_motivation", "worldbuilding", "pacing", "concept_issue", "scene_to_fix", "other"]}
                 },
                 "required": ["title"]
@@ -171,7 +172,15 @@ def build_system_prompt(context: Dict[str, Any]) -> str:
 ## Tool Usage
 - ONLY call create_* tools when user says things like "create", "add", "make a new"
 - ONLY call analyze_story when user says "analyze", "find issues", "check for problems"  
-- For regular questions and discussion, just respond normally WITHOUT tools"""
+- For regular questions and discussion, just respond normally WITHOUT tools
+
+## CRITICAL: Entity Creation Rules
+When creating entities (characters, concepts, events, problems):
+- **ONLY store exactly what the user said** - no embellishment, no brainstorming
+- **Do NOT invent** traits, backstory, personality, arcs, or any details
+- If user says "create character Tessia, 19 years old, fairy" → traits should be ONLY "19 years old, fairy"
+- Leave fields EMPTY if the user didn't provide that information
+- Accuracy over verbosity - the user can add more details later"""
     
     return system_prompt
 
@@ -294,13 +303,14 @@ def execute_tool_calls(
 
 # Tool handlers
 def handle_create_character(session: Session, arguments: Dict[str, Any]) -> str:
-    """Create a new character."""
+    """Create a new character - stores ONLY what user provided."""
     name = arguments.get("name", "").strip()
     if not name:
         return "I need a name to create a character."
 
-    traits = arguments.get("traits", "")
-    arc = arguments.get("arc", "")
+    # Only use what was explicitly provided, default to empty
+    traits = arguments.get("traits", "").strip()
+    arc = arguments.get("arc", "").strip()
 
     try:
         extracted = {
@@ -310,25 +320,23 @@ def handle_create_character(session: Session, arguments: Dict[str, Any]) -> str:
         summary = persist_extracted_entities(session, extracted)
 
         if summary["created"]["characters"]:
-            response = f"✓ Created character **{name}**"
+            response = f"✓ Created **{name}**"
             if traits:
-                response += f"\n  - Traits: {traits}"
-            if arc:
-                response += f"\n  - Arc: {arc}"
+                response += f" ({traits})"
             return response
         else:
-            return f"Character **{name}** already exists. I've updated their details if you provided new information."
+            return f"**{name}** already exists - updated with new details."
     except Exception as e:
         return f"Couldn't create character: {str(e)}"
 
 
 def handle_create_concept(session: Session, arguments: Dict[str, Any]) -> str:
-    """Create a new concept."""
+    """Create a new concept - stores ONLY what user provided."""
     title = arguments.get("title", "").strip()
     if not title:
         return "I need a title to create a concept."
 
-    description = arguments.get("description", "")
+    description = arguments.get("description", "").strip()
 
     try:
         extracted = {
@@ -340,23 +348,23 @@ def handle_create_concept(session: Session, arguments: Dict[str, Any]) -> str:
         if summary["created"]["concepts"]:
             response = f"✓ Created concept **{title}**"
             if description:
-                response += f"\n  {description[:200]}"
+                response += f" - {description[:100]}"
             return response
         else:
-            return f"Concept **{title}** already exists. I've updated it if you provided new details."
+            return f"**{title}** already exists - updated with new details."
     except Exception as e:
         return f"Couldn't create concept: {str(e)}"
 
 
 def handle_create_event(session: Session, arguments: Dict[str, Any]) -> str:
-    """Create a new timeline event."""
+    """Create a new timeline event - stores ONLY what user provided."""
     title = arguments.get("title", "").strip()
     if not title:
         return "I need a title to create an event."
 
-    description = arguments.get("description", "")
-    act = arguments.get("act")
-    beat = arguments.get("beat")
+    description = arguments.get("description", "").strip()
+    act = arguments.get("act", "").strip() if arguments.get("act") else None
+    beat = arguments.get("beat", "").strip() if arguments.get("beat") else None
 
     try:
         extracted = {
@@ -369,22 +377,20 @@ def handle_create_event(session: Session, arguments: Dict[str, Any]) -> str:
             response = f"✓ Created event **{title}**"
             if act:
                 response += f" ({act})"
-            if description:
-                response += f"\n  {description[:200]}"
             return response
         else:
-            return f"Event **{title}** already exists. I've updated it if you provided new details."
+            return f"**{title}** already exists - updated with new details."
     except Exception as e:
         return f"Couldn't create event: {str(e)}"
 
 
 def handle_create_problem(session: Session, arguments: Dict[str, Any]) -> str:
-    """Create a plot hole or issue to track."""
+    """Create a plot hole or issue - stores ONLY what user provided."""
     title = arguments.get("title", "").strip()
     if not title:
         return "I need a title to create a problem entry."
 
-    description = arguments.get("description", "")
+    description = arguments.get("description", "").strip()
     kind = arguments.get("kind", "plot_hole")
 
     try:
@@ -395,11 +401,11 @@ def handle_create_problem(session: Session, arguments: Dict[str, Any]) -> str:
         summary = persist_extracted_entities(session, extracted)
 
         if summary["created"]["plot_holes"]:
-            return f"✓ Noted issue: **{title}**\n  I've added this to your plot holes tracker."
+            return f"✓ Noted: **{title}**"
         else:
-            return f"Issue **{title}** is already being tracked."
+            return f"**{title}** is already tracked."
     except Exception as e:
-        return f"Couldn't create problem entry: {str(e)}"
+        return f"Couldn't create problem: {str(e)}"
 
 
 def handle_analyze_story(session: Session) -> str:
